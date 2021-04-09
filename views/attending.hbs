@@ -1,0 +1,41 @@
+<a class="nav__button button" href="/"><img src="img/back.svg" class="nav__button__img" alt="<"></a>
+<header class="header">
+    <img class="header__logo header__logo--small" src="img/logo-text.svg" alt="Questionable Research Labs Logo"
+         aria-label="Questionable Research Labs Logo" title="Questionable Research Labs">
+</header>
+<main class="main">
+    <div class="attendance">
+        <h1 class="attendance__title">Attendance Registry</h1>
+        <p class="attendance__message">The following is a list of today's attendance</p>
+        <div class="attendance__list">
+            {{#each data}}
+                <div class="attendance__list__item">
+                    {{#if guest}}
+                        <p class="attendance__list__item__guest">Guest</p>
+                    {{/if}}
+                    <p class="attendance__list__item__name">{{name}}</p>
+                    <p class="attendance__list__item__time">{{time}}</p>
+                    <div class="attendance__list__item__buttons">
+                        <button class="attendance__list__item__buttons__button button" title="Delete this record"
+                                data-name="{{name}}"><img
+                                src="img/delete.svg" alt="X"></button>
+                    </div>
+                </div>
+            {{/each}}
+        </div>
+    </div>
+</main>
+<div class="loader__wrapper" id="loader">
+    <div class="loader">
+        <div class="loader__body">
+            <span class="loader__circle"></span>
+            <span class="loader__circle"></span>
+            <span class="loader__circle"></span>
+        </div>
+        <p class="loader__text" id="loaderText">Loading...</p>
+    </div>
+</div>
+<div class="toast toast--hidden" id="toast">
+    <p class="toast__text" id="toastText">Successfully marked attendance for Unknown</p>
+    <button class="toast__undo" id="toastUndo">Undo</button>
+</div>
