@@ -1,5 +1,6 @@
 "use strict";
 
+// Clears the window hash
 var clearHash = function clearHash() {
   return history.pushState("", document.title, window.location.pathname + window.location.search);
 };
@@ -42,24 +43,37 @@ $(window).on('hashchange', function () {
 });
 
 function toPage(id) {
+  // Disable all type buttons so that hitting tab wont focus on them
   $('.member-types__type').prop('disabled', true);
-  $types.addClass('member-types--hidden');
-  $pages.removeClass('sign-pages--hidden');
-  $(".sign-pages__page[page-id=\"".concat(id, "\"]")).removeClass('sign-pages__page--hidden');
+  $types.addClass('member-types--hidden'); // Add the hidden class to hide it
+
+  $pages.removeClass('sign-pages--hidden'); // Remove the hidden class to show it
+
+  $(".sign-pages__page[page-id=\"".concat(id, "\"]")).removeClass('sign-pages__page--hidden'); // Remove the hidden class for the current page
 }
 
 function resetPage() {
-  $('.member-types__type').prop('disabled', false);
-  $types.removeClass('member-types--hidden');
-  $pages.addClass('sign-pages--hidden');
-  $('.sign-pages__page').addClass('sign-pages__page--hidden');
-  clearHash();
-  $guestName.val('');
-  $memberName.val('');
-  $('.members__list__item').prop('checked', false);
-  selectedMember = null;
-  $memberSubmit.prop('disabled', true);
-  clearMembersList();
+  $('.member-types__type').prop('disabled', false); // Make the member types not hidden
+
+  $types.removeClass('member-types--hidden'); // Remove the hidden class to show it
+
+  $pages.addClass('sign-pages--hidden'); // Add the hidden class to hide it
+
+  $('.sign-pages__page').addClass('sign-pages__page--hidden'); // Add hidden class to hide the pages
+
+  clearHash(); // Clear the current page
+
+  $guestName.val(''); // Reset the guest name
+
+  $memberName.val(''); // Reset the member name
+
+  $('.members__list__item').prop('checked', false); // Uncheck all the members radio buttons
+
+  selectedMember = null; // Set the selected member to done
+
+  $memberSubmit.prop('disabled', true); // Disable the member submit button
+
+  clearMembersList(); // Clear the list of members
 } // Make the back button reset the page
 
 
@@ -80,7 +94,7 @@ $('#signBack').on('click', function () {
 // This stores the list of members retrieved from the server
 
 var members = [];
-var selectedMember = null;
+var selectedMember = null; // Stores the selected member
 
 function loadMembers() {
   // Display the loader so the user knows whats happening
@@ -159,30 +173,39 @@ function getRelevantMembers(name) {
 
 function clearMembersList() {
   var $membersList = $('#membersList');
-  $membersList.children().remove();
+  $membersList.children().remove(); // Remove all the children
 }
 
 function fillMembersList() {
   var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
-  if (name == null || name.length === 0) name = null;
+  if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
+
   var $membersList = $('#membersList');
-  var members = getRelevantMembers(name);
-  clearMembersList();
+  var members = getRelevantMembers(name); // Get the members relevant to the search
+
+  clearMembersList(); // Clear the list of members
+  // Loop through all the members
+
   members.forEach(function (member) {
+    // Create the label wrapping so the whole thing acts a radio button
     var $item = $('<label/>', {
       "class": 'members__list__item',
       text: member
-    });
+    }); // Create the radio button
+
     var $radio = $('<input/>', {
       type: 'radio',
       name: 'members',
       "class": 'members__list__item__button',
       value: member
-    });
+    }); // Set the click logic for the radio button
+
     $radio.on('click', function () {
-      var $button = $(this);
-      var $parent = $button.parent();
-      var checked = $button.is(':checked');
+      var $button = $(this); // Get a jquery instance of the button
+
+      var $parent = $button.parent(); // Get the parent element
+
+      var checked = $button.is(':checked'); // Check if the button is checked
 
       if (checked) {
         if ($parent.hasClass('members__list__item--selected')) {
@@ -193,19 +216,24 @@ function fillMembersList() {
 
           $button.prop('checked', false); // Set the checked state
         } else {
-          $('.members__list__item').removeClass('members__list__item--selected');
-          $parent.addClass('members__list__item--selected');
-          selectedMember = $button.attr('value');
+          $('.members__list__item').removeClass('members__list__item--selected'); // Remove the selected class from the other elements
+
+          $parent.addClass('members__list__item--selected'); // Add the selected class
+
+          selectedMember = $button.attr('value'); // Set the selected member to the value of the radio button
         }
       } // Set the done button to disabled if the selected member is null otherwise enable it
 
 
       $memberSubmit.prop('disabled', selectedMember == null);
-    });
-    $radio.appendTo($item);
+    }); // Append the radio button to the item
+
+    $radio.appendTo($item); // Append the item to the members list
+
     $item.appendTo($membersList);
   });
-}
+} // Change the contents of the members list when the name changes
+
 
 $memberName.on('input', function () {
   return fillMembersList($memberName.val());
@@ -224,15 +252,16 @@ $memberName.on('input', function () {
 
 function showLoader() {
   var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "Loading...";
-  $loader.addClass('loader__wrapper--open');
-  $loaderText.val(text);
+  $loader.addClass('loader__wrapper--open'); // Add the open loader class
+
+  $loaderText.val(text); // Set the text of the loader
 }
 
 function hideLoader() {
-  $loader.removeClass('loader__wrapper--open');
+  $loader.removeClass('loader__wrapper--open'); // Remove the loader open class
 }
 
-var currentToastTimeout = -1;
+var currentToastTimeout = -1; // The timeout identifier of setTimeout for the toast
 
 function showToast(text) {
   var undoCallback = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
@@ -243,36 +272,45 @@ function showToast(text) {
   var $toastUndo = $('#toastUndo');
 
   if (error) {
+    // If the toast in an error toast add the error class
     $toast.addClass('toast--error');
   } else {
+    // Otherwise remove the error class
     $toast.removeClass('toast--error');
-  }
+  } // Bind bind the click event to the undo callback if it exists
+
 
   $toastUndo.bind('click', function () {
     return undoCallback != null && undoCallback();
   });
 
   if (undoCallback == null) {
+    // If there is no undo callback hide the undo button
     $toastUndo.css('display', 'none');
   } else {
     $toastUndo.css('display', 'revert');
   }
 
-  $toastText.text(text);
-  $toast.removeClass('toast--hidden');
+  $toastText.text(text); // Set the toast text
+
+  $toast.removeClass('toast--hidden'); // Remove the toast hidden class
 
   if (currentToastTimeout !== -1) {
-    clearTimeout(currentToastTimeout);
-  }
+    // If there is already a timeout
+    clearTimeout(currentToastTimeout); // Clear the current timeout
+  } // Set the timeout to a new setTimeout
+
 
   currentToastTimeout = setTimeout(function () {
-    $toast.addClass('toast--hidden');
-    $toastUndo.unbind('click');
+    // When the duration is complete
+    $toast.addClass('toast--hidden'); // Add the hidden class again
+
+    $toastUndo.unbind('click'); // Unbind the click callback
   }, duration);
 } // Clear the page hash on reload
 
 
-clearHash();
+clearHash(); // Only load members on the main page not /attending
 
 if (document.location.pathname !== '/attending') {
   loadMembers();
@@ -291,14 +329,22 @@ if (document.location.pathname !== '/attending') {
 
 
 $memberSubmit.on('click', function () {
-  if (selectedMember == null) return;
-  var name = selectedMember;
+  if (selectedMember == null) return; // If there is no selected member return
+
+  var name = selectedMember; // Save the attendance
+
   saveAttendance(name, true, function () {
+    // After the attendance is saved
+    // Show a toast telling the user its been marked
     showToast('Successfully marked attendance for "' + name + '"', function () {
+      // The callback that occurs if undo is pressed
+      // Remove the attendance
       removeAttendance(name, function () {
-        showToast('Reverted attendance for "' + name + '"');
+        // After the attendance is removed
+        showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
       });
-    });
+    }); // Take the user back to the main page
+
     resetPage();
   });
 });
@@ -306,12 +352,19 @@ $guestSubmit.on('click', function () {
   var name = $guestName.val();
 
   if (name != null && name.length > 0) {
+    // Save the attendance
     saveAttendance(name, false, function () {
+      // After the attendance is saved
+      // Show a toast telling the user its been marked
       showToast('Successfully marked attendance for "' + name + '"', function () {
+        // The callback that occurs if undo is pressed
+        // Remove the attendance
         removeAttendance(name, function () {
-          showToast('Reverted attendance for "' + name + '"');
+          // After the attendance is removed
+          showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
         });
-      });
+      }); // Take the user back to the main page
+
       resetPage();
     });
   }
@@ -333,9 +386,11 @@ function saveAttendance(name, member, callback) {
       fail(0); // Failed because missing status
     } else {
       if (res.status === 'success') {
+        // Call the callback
         callback();
       } else {
         if (res.hasOwnProperty("reason")) {
+          // Show a error toast
           showToast(res.reason, null, true);
         } else fail(1);
       }
@@ -365,7 +420,9 @@ function removeAttendance(name, callback) {
       fail(0); // Failed because missing status
     } else {
       if (res.status === 'success') {
-        showToast('Successfully removed attendance for "' + name + '"', null);
+        // Show a toast letting the user know the attendance was marked
+        showToast('Successfully removed attendance for "' + name + '"', null); // Run the callback
+
         callback();
       } else {
         fail(1);
@@ -379,11 +436,12 @@ function removeAttendance(name, callback) {
 }
 
 $('.attendance__list__item__buttons__button').on('click', function () {
-  var $button = $(this);
+  var $button = $(this); // The name of the attendance item
+
   var name = $button.attr('data-name');
-  console.log(name);
 
   if (name !== undefined && name !== null) {
+    // Remove the attendance for that name
     removeAttendance(name, function () {
       return $button.parents('.attendance__list__item').remove();
     });
