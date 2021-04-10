@@ -273,7 +273,10 @@ function showToast(text) {
 
 
 clearHash();
-loadMembers();
+
+if (document.location.pathname !== '/attending') {
+  loadMembers();
+}
 /*
 *   End Loading Handling & Toasts
 *
@@ -286,12 +289,15 @@ loadMembers();
 *
 */
 
+
 $memberSubmit.on('click', function () {
   if (selectedMember == null) return;
   var name = selectedMember;
   saveAttendance(name, true, function () {
     showToast('Successfully marked attendance for "' + name + '"', function () {
-      showToast('Reverted attendance for "' + name + '"');
+      removeAttendance(name, function () {
+        showToast('Reverted attendance for "' + name + '"');
+      });
     });
     resetPage();
   });

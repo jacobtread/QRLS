@@ -6,18 +6,6 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 const CRED_PATH = process.env.GOOGLE_CREDENTIALS || 'data/gsheet.json'
 const TOKEN_PATH = process.env.TOKEN_PATH || 'data/token.json'
 
-// noinspection SpellCheckingInspection
-const sheetConfigs = {
-    youth: {
-        sheet_id: process.env.YOUTH_SHEET_ID,
-        range_name: process.env.YOUTH_RANGE_NAME,
-    },
-    facilitators: {
-        sheet_id: process.env.FACILITATORS_SHEET_ID,
-        range_name: process.env.FACILITATORS_RANGE_NAME,
-    }
-}
-
 const authorize = () => new Promise((resolve, reject) => {
     fs.readFile(CRED_PATH, (err, data) => {
         if (err != null) {
@@ -68,42 +56,99 @@ const newToken = (oAuth2Client) => new Promise((resolve, reject) => {
     });
 });
 
+const loadFromCache = (file) => {
+    const exists = fs.existsSync(file);
+    console.log('Loading cache ' + file)
+    if (exists) {
+        const contents = fs.readFileSync(file);
+        if (contents !== null) {
+            return JSON.parse(contents.toString());
+        }
+    }
+    return {data: [], date: null};
+}
 
-const fetchMembers = () => new Promise((resolve, reject) => {
+
+const moment = require('moment')
+
+const saveToCache = (file, data) => {
+    fs.writeFileSync(file, JSON.stringify({date: moment(), data: data}))
+}
+
+const fetchYouthSheet = () => new Promise(resolve => {
+    const cacheFile = process.env.YOUTH_CACHE_FILE
+    const cache = loadFromCache(cacheFile);
+    if (cache.date !== null) {
+        const date = moment(cache.date);
+        const expireDate = date.add(1, 'hour');
+        const now = moment();
+        if (expireDate.isBefore(now)) {
+            resolve(cache.date);
+            return;
+        }
+    }
     authorize().then(auth => {
         const sheets = google.sheets({version: 'v4', auth});
         sheets.spreadsheets.values.get({
-            spreadsheetId: sheetConfigs.youth.sheet_id,
-            range: sheets.youth.range_name,
+            spreadsheetId: process.env.YOUTH_SHEET_ID,
+            range: process.env.YOUTH_RANGE_NAME,
         }, (err, res) => {
-            if (err) return console.log('The API returned an error: ' + err);
+            if (err) resolve(cache.data)
             const rows = res.data.values;
             if (rows.length) {
-                console.log('Name');
-                // Print columns A and E, which correspond to indices 0 and 4.
-                rows.map((row) => {
-                    console.log(`${row[0]}, ${row[4]}`);
+                const youthNames = []
+                rows.forEach(row => {
+                    youthNames.push(row[0])
                 });
-            } else {
-                console.log('No data found.');
+                saveToCache(cacheFile, youthNames);
+                resolve(youthNames);
             }
         });
-    }).catch(err => {
-        console.log(err)
+    }).catch(() => resolve(cache.data));
+});
+
+const fetchFacilitatorsSheet = () => new Promise(resolve => {
+    const cacheFile = process.env.FACILITATORS_CACHE_FILE
+    const cache = loadFromCache(cacheFile)
+    if (cache.date !== null) {
+        const date = moment(cache.date);
+        const expireDate = date.add(1, 'hour');
+        const now = moment();
+        if (expireDate.isBefore(now)) {
+            resolve(cache.date);
+            return;
+        }
+    }
+    authorize().then(auth => {
+        const sheets = google.sheets({version: 'v4', auth});
+        sheets.spreadsheets.values.get({
+            spreadsheetId: process.env.FACILITATORS_SHEET_ID,
+            range: process.env.FACILITATORS_RANGE_NAME,
+        }, (err, res) => {
+            if (err) resolve(cache.data)
+            const rows = res.data.values;
+            if (rows.length) {
+                const facilitatorNames = []
+                rows.forEach(row => {
+                    facilitatorNames.push(row[0])
+                });
+                saveToCache(cacheFile, facilitatorNames)
+                resolve(facilitatorNames);
+            }
+        });
+    }).catch(() => resolve(cache.data));
+});
+
+const fetchMembers = () => new Promise((resolve, reject) => {
+    fetchYouthSheet().then(youth => {
+        fetchFacilitatorsSheet().then(facilitators => {
+            resolve(youth.concat(facilitators))
+        })
     })
-})
+});
+
 
 module.exports = {
-    fetchMembers: () => new Promise(resolve => {
-        resolve([
-            "Jacob",
-            "Joseph",
-            "Example",
-            "John Doe",
-            "Jimmy Neutron",
-            "Nathan",
-            "Mr Stonks"
-        ])
-    }),
+    fetchMembers: fetchMembers,
 
 }

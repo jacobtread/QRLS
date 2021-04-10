@@ -235,8 +235,11 @@ function showToast(text, undoCallback = null, error = false, duration = 2500) {
 
 
 // Clear the page hash on reload
+
 clearHash();
-loadMembers();
+if (document.location.pathname !== '/attending') {
+    loadMembers();
+}
 
 
 /*
@@ -256,7 +259,9 @@ $memberSubmit.on('click', () => {
     const name = selectedMember;
     saveAttendance(name, true, () => {
         showToast('Successfully marked attendance for "' + name + '"', () => {
-            showToast('Reverted attendance for "' + name + '"')
+            removeAttendance(name, ()=>{
+                showToast('Reverted attendance for "' + name + '"')
+            })
         });
         resetPage();
     });

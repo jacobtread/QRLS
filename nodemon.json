@@ -1,3 +1,3 @@
 {
-  "ignore": ["resources/*", "public/*"]
+  "ignore": ["resources/*", "public/*", "data/*.json"]
 }
