@@ -28,4 +28,5 @@ data/
 .idea/
 /.idea/
 
-
+docker
+/docker/

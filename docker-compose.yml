@@ -1,0 +1,49 @@
+version: "3.7"
+networks:
+  app:
+    driver: bridge
+services:
+  mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'attendance_db'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+    volumes:
+      - db-config:/etc/mysql
+      - db-data:/var/lib/mysql
+      - ./db/backup/files/:/data_backup/data
+    networks:
+      - app
+  qrls:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    expose:
+      - 8080
+    volumes:
+      - .:/usr/src/qrls
+    links:
+      - mysql
+    environment:
+      DB_HOST: 'mysql'
+      DB_PORT: '3306'
+      DB_USER: 'root'
+      DB_PASSWORD: 'password'
+      DB: 'attendance_db'
+    depends_on:
+      - mysql
+    stdin_open: true
+    tty: true
+    networks:
+      - app
+volumes:
+  db-config:
+  db-data:
