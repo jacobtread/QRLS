@@ -237,6 +237,19 @@ function fillMembersList() {
 
 $memberName.on('input', function () {
   return fillMembersList($memberName.val());
+}); // When a key is released for the GuestName input
+
+$memberName.on('keyup', function (e) {
+  if (e.keyCode === 13 && members.length > 0) {
+    // Enter key pushed and we have members
+    selectedMember = members[0]; // Selected the first member
+
+    $('.members__list__item__button[value="' + selectedMember + '"]').trigger('click'); // Select the corresponding input
+
+    $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+
+    $memberSubmit.trigger('click'); // Click the button
+  }
 });
 /*
 *   End Member Handling
@@ -347,6 +360,13 @@ $memberSubmit.on('click', function () {
 
     resetPage();
   });
+}); // When a key is released for the GuestName input
+
+$guestName.on('keyup', function (e) {
+  if (e.keyCode === 13) {
+    // Enter key pushed
+    $guestSubmit.trigger('click'); // Click the button for the user
+  }
 });
 $guestSubmit.on('click', function () {
   var name = $guestName.val();

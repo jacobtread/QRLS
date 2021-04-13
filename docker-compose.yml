@@ -1,49 +1,46 @@
-version: "3.7"
+# Docker compose version
+version: '3.7'
+# App networking
+# We use a bridge network to connect the parts
 networks:
-  app:
-    driver: bridge
-services:
-  mysql:
-    image: mysql
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
-    environment:
-      MYSQL_DATABASE: 'attendance_db'
-      MYSQL_ROOT_PASSWORD: 'password'
-    ports:
-      - 3306:3306
-    expose:
-      - 3306
-    volumes:
-      - db-config:/etc/mysql
-      - db-data:/var/lib/mysql
-      - ./db/backup/files/:/data_backup/data
-    networks:
-      - app
   qrls:
+    driver: bridge
+# App Services
+services:
+  # The Node server
+  web:
+    # Build our docker image
     build:
       context: .
       dockerfile: Dockerfile
+    image: qrls-app
+    restart: unless-stopped
+    container_name: qrls-web
     ports:
-      - 8080:8080
+      # Bind the port in the .env
+      - ${PORT}:${PORT}
     expose:
-      - 8080
+      # Expose the port in the .env
+      - ${PORT}
     volumes:
       - .:/usr/src/qrls
-    links:
-      - mysql
-    environment:
-      DB_HOST: 'mysql'
-      DB_PORT: '3306'
-      DB_USER: 'root'
-      DB_PASSWORD: 'password'
-      DB: 'attendance_db'
-    depends_on:
-      - mysql
-    stdin_open: true
-    tty: true
     networks:
-      - app
-volumes:
-  db-config:
-  db-data:
+      - qrls
+    depends_on:
+      - db
+  # The MySQL database
+  db:
+    image: mysql:5.7
+    container_name: qrls-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - qrls

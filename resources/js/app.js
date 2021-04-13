@@ -191,7 +191,15 @@ function fillMembersList(name = null) {
 
 // Change the contents of the members list when the name changes
 $memberName.on('input', () => fillMembersList($memberName.val()))
-
+// When a key is released for the GuestName input
+$memberName.on('keyup', (e) => {
+    if (e.keyCode === 13 && members.length > 0) { // Enter key pushed and we have members
+        selectedMember = members[0]; // Selected the first member
+        $('.members__list__item__button[value="'+selectedMember+'"]').trigger('click'); // Select the corresponding input
+        $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+        $memberSubmit.trigger('click'); // Click the button
+    }
+});
 
 /*
 *   End Member Handling
@@ -282,6 +290,12 @@ $memberSubmit.on('click', () => {
     });
 });
 
+// When a key is released for the GuestName input
+$guestName.on('keyup', (e) => {
+    if (e.keyCode === 13) { // Enter key pushed
+        $guestSubmit.trigger('click'); // Click the button for the user
+    }
+});
 $guestSubmit.on('click', () => {
     const name = $guestName.val();
     if (name != null && name.length > 0) {
@@ -299,6 +313,7 @@ $guestSubmit.on('click', () => {
         });
     }
 });
+
 
 function saveAttendance(name, member, callback) {
     showLoader('Saving Attendance...');

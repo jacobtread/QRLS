@@ -2,12 +2,10 @@
 
 QRLS (Questionable Research Labs Signon)
 
-This is the new and improved software for manging the attendance of QRL members
-and guests.
+This is the new and improved software for manging the attendance of QRL members and guests.
 
-The app requires a .env file containing the following 
-
-(PORT IS NOT REQUIRED)
+Requires the following environment variables
+(Can use a .env file)
 
 ```dotenv
 # App web port
@@ -32,6 +30,6 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=user
 DB_PASSWORD=password
-DB=attendance_db
+DB_DATABASE=attendance_db
 
 ```
