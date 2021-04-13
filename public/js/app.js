@@ -240,15 +240,23 @@ $memberName.on('input', function () {
 }); // When a key is released for the GuestName input
 
 $memberName.on('keyup', function (e) {
-  if (e.keyCode === 13 && members.length > 0) {
-    // Enter key pushed and we have members
-    selectedMember = members[0]; // Selected the first member
+  if (e.keyCode === 13) {
+    // Enter key pushed
+    var name = $memberName.val();
+    if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
 
-    $('.members__list__item__button[value="' + selectedMember + '"]').trigger('click'); // Select the corresponding input
+    var viewMembers = getRelevantMembers(name);
 
-    $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+    if (viewMembers.length > 0) {
+      // Make sure we have members
+      selectedMember = viewMembers[0]; // Selected the first member
 
-    $memberSubmit.trigger('click'); // Click the button
+      $('.members__list__item__button[value="' + selectedMember + '"]').trigger('click'); // Select the corresponding input
+
+      $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+
+      $memberSubmit.trigger('click'); // Click the button
+    }
   }
 });
 /*

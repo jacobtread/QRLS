@@ -193,11 +193,16 @@ function fillMembersList(name = null) {
 $memberName.on('input', () => fillMembersList($memberName.val()))
 // When a key is released for the GuestName input
 $memberName.on('keyup', (e) => {
-    if (e.keyCode === 13 && members.length > 0) { // Enter key pushed and we have members
-        selectedMember = members[0]; // Selected the first member
-        $('.members__list__item__button[value="'+selectedMember+'"]').trigger('click'); // Select the corresponding input
-        $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
-        $memberSubmit.trigger('click'); // Click the button
+    if (e.keyCode === 13) { // Enter key pushed
+        let name = $memberName.val();
+        if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
+        const viewMembers = getRelevantMembers(name);
+        if (viewMembers.length > 0) { // Make sure we have members
+            selectedMember = viewMembers[0]; // Selected the first member
+            $('.members__list__item__button[value="' + selectedMember + '"]').trigger('click'); // Select the corresponding input
+            $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+            $memberSubmit.trigger('click'); // Click the button
+        }
     }
 });
 
