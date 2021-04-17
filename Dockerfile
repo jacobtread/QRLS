@@ -3,7 +3,7 @@ FROM node:alpine
 WORKDIR /usr/src/qrls
 
 COPY package*.json ./
-COPY data ./data
+COPY app/data ./app/data
 RUN npm install
 
 # FOR PRODUCTION
@@ -14,6 +14,5 @@ COPY . .
 # APPLICATION PORT
 EXPOSE 8080
 ENV PORT 8080
-
 
 CMD ["node", "./bin/www"]

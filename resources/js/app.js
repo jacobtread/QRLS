@@ -142,11 +142,13 @@ function getRelevantMembers(name) {
     return matching;
 }
 
+// Clear the list of members
 function clearMembersList() {
     const $membersList = $('#membersList');
     $membersList.children().remove(); // Remove all the children
 }
 
+// Fill the list of members with names relevant to the search
 function fillMembersList(name = null) {
     if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
     const $membersList = $('#membersList');
@@ -282,17 +284,7 @@ $memberSubmit.on('click', () => {
     if (selectedMember == null) return; // If there is no selected member return
     const name = selectedMember;
     // Save the attendance
-    saveAttendance(name, true, () => { // After the attendance is saved
-        // Show a toast telling the user its been marked
-        showToast('Successfully marked attendance for "' + name + '"', () => { // The callback that occurs if undo is pressed
-            // Remove the attendance
-            removeAttendance(name, () => { // After the attendance is removed
-                showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
-            })
-        });
-        // Take the user back to the main page
-        resetPage();
-    });
+    saveAttendance(name, true);
 });
 
 // When a key is released for the GuestName input
@@ -301,66 +293,63 @@ $guestName.on('keyup', (e) => {
         $guestSubmit.trigger('click'); // Click the button for the user
     }
 });
+// When the guest submit button is clicked
 $guestSubmit.on('click', () => {
     const name = $guestName.val();
     if (name != null && name.length > 0) {
         // Save the attendance
-        saveAttendance(name, false, () => { // After the attendance is saved
-            // Show a toast telling the user its been marked
-            showToast('Successfully marked attendance for "' + name + '"', () => { // The callback that occurs if undo is pressed
-                // Remove the attendance
-                removeAttendance(name, () => { // After the attendance is removed
-                    showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
-                })
-            });
-            // Take the user back to the main page
-            resetPage();
-        });
+        saveAttendance(name, false);
     }
 });
 
-
-function saveAttendance(name, member, callback) {
+function saveAttendance(name, member) {
     showLoader('Saving Attendance...');
     // A Function that is called if we failed
-    const fail = (point) => showToast('Failed to mark attendance... POINT=' + point, null, true);
+    const fail = (reason) => showToast('Failed to mark attendance: ' + reason, null, true);
     $.post('/attendance', {name: name, member: member}).done(res => {
         // Make sure the request isn't malformed
         if (!res.hasOwnProperty('status')) {
-            fail(0); // Failed because missing status
+            fail('Malformed server data'); // Failed because missing status
         } else {
             if (res.status === 'success') {
-                // Call the callback
-                callback();
+                // Show a toast telling the user its been marked
+                showToast('Successfully marked attendance for "' + name + '"', () => { // The callback that occurs if undo is pressed
+                    // Remove the attendance
+                    removeAttendance(name, () => { // After the attendance is removed
+                        showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
+                    })
+                });
+                // Take the user back to the main page
+                resetPage();
             } else {
                 if (res.hasOwnProperty("reason")) {
                     // Show a error toast
                     showToast(res.reason, null, true);
-                } else fail(1);
+                } else fail('Unknown Reason');
             }
         }
-    }).fail(() => fail(2)).always(() => hideLoader());
+    }).fail(() => fail('Unable to connect')) // The request failed
+        .always(() => hideLoader()); // Always close the loader no matter the result
 }
 
 function removeAttendance(name, callback) {
     showLoader('Removing Attendance...');
     // A Function that is called if we failed
-    const fail = (point) => showToast('Failed to change attendance... POINT=' + point, null, true);
+    const fail = (reason) => showToast('Failed to change attendance: ' + reason, null, true);
     $.ajax('/attendance', {type: 'DELETE', data: {name: name}}).done(res => {
         // Make sure the request isn't malformed
         if (!res.hasOwnProperty('status')) {
-            fail(0); // Failed because missing status
+            fail('Malformed server data'); // Failed because missing status
         } else {
             if (res.status === 'success') {
                 // Show a toast letting the user know the attendance was marked
                 showToast('Successfully removed attendance for "' + name + '"', null);
                 // Run the callback
                 callback();
-            } else {
-                fail(1);
-            }
+            } else fail('Unknown Reason');
         }
-    }).fail(() => fail(2)).always(() => hideLoader());
+    }).fail(() => fail('Unable to connect')) // The request failed
+        .always(() => hideLoader()); // Always close the loader no matter the result
 }
 
 $('.attendance__list__item__buttons__button').on('click', function () {

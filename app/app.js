@@ -8,16 +8,18 @@ const logger = require('morgan');
 const path = require('path');
 const app = express();
 
-// Setup the handlebars view engine
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'hbs');
+const parentDir = path.join(__dirname, '../')
 
-app.use(logger('dev'))
+// Setup the handlebars view engine
+app.set('views', path.join(parentDir, 'resources/views'));
+app.set('view engine', 'hbs');
+if (process.env.REQUEST_LOGGING === 'true') {
+    app.use(logger('dev'));
+}
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, 'public')));
-
+app.use(express.static(path.join(parentDir, 'public')));
 // Load the database
 const database = require('./database')
 

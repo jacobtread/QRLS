@@ -22,7 +22,7 @@ web_modules/
 .env
 .env.*
 
-data/
+app/data/
 
 .idea
 .idea/

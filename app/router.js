@@ -2,11 +2,13 @@ const sheets = require('./sheets')
 
 module.exports = (app, database) => {
 
+    // Handle GET requests to /
     app.get('/', (req, res) => {
         // Render the index page
         res.render('index', {title: 'Home'});
     });
 
+    // Handle GET requests to /members
     app.get('/members', (req, res) => {
         // Fetch the members from google sheets
         sheets.getNameList().then(members => {
@@ -20,9 +22,10 @@ module.exports = (app, database) => {
             res.json({
                 "status": "failed"
             })
-        })
+        });
     });
 
+    // Handle GET requests to /attending
     app.get('/attending', (req, res) => {
         // Fetch the attending names
         database.getAttending().then(data => {
@@ -38,10 +41,10 @@ module.exports = (app, database) => {
                 title: 'Attendance',
                 data: []
             });
-        })
-
+        });
     });
 
+    // Handle POST requests to /attendance
     app.post('/attendance', (req, res) => {
         const body = req.body; // Get the request body
         // Make sure the body has the required data
@@ -69,6 +72,7 @@ module.exports = (app, database) => {
         }
     });
 
+    // Handle DELETE request to /attendance
     app.delete('/attendance', (req, res) => {
         const body = req.body; // Get the request body
         // Make sure the body has the required data
@@ -81,7 +85,15 @@ module.exports = (app, database) => {
         } else { // Send a failed response because we were missing data
             res.json({status: 'failed'})
         }
-    })
+    });
+
+    // Handle GET request to /clear-cache
+    app.get('/clear-cache', (req, res) => {
+        // Clear the google sheets cache
+        sheets.clearCache();
+        // Send a success response no matter what
+        res.json({status: 'success'});
+    });
 
     // Redirect any unknown urls to the home page
     app.use((req, res) => {

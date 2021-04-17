@@ -69,28 +69,6 @@ body {
   background-color: $background;
 }
 
-@mixin theme-2 {
-  body {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
-    flex-flow: row;
-  }
-  .main {
-    flex: 1 1 auto;
-  }
-  .header {
-    width: 500px;
-    padding-top: 2em;
-    background: darken($background, 5);
-    margin: 0 !important;
-    z-index: 1;
-  }
-}
-
-//@include theme-2();
-
-
 .text-pop {
   color: $primary;
   font-weight: bold;
@@ -101,7 +79,7 @@ body {
   text-align: center;
 
   &__logo {
-    max-height: 300px;
+    max-height: 200px;
     margin: 1em auto;
 
     &--small {
@@ -134,12 +112,9 @@ body {
     width: 0;
     height: 0;
     background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(10px);
     opacity: 0;
-    @include transition((0.2s opacity, 0s 0.2s width, 0s 0.2s height));
 
     &--open {
-      @include transition((0.2s opacity, 0s width, 0s height));
       width: 100vw;
       height: 100vh;
       opacity: 1;
@@ -150,6 +125,7 @@ body {
     color: white;
     font-size: 1.2em;
     letter-spacing: 2px;
+
   }
 
   &__circle {
@@ -481,7 +457,7 @@ body {
     padding: 0 1em;
 
     &:hover {
-      background: rgba(255,255,255, 0.15);
+      background: rgba(255, 255, 255, 0.15);
     }
   }
 }

@@ -1,0 +1,83 @@
+<TaskOptions>
+    <TaskOptions>
+        <option name="arguments" value="$FileName$:$ContentRoot$/public/css/$FileNameWithoutExtension$.css"/>
+        <option name="checkSyntaxErrors" value="true"/>
+        <option name="description"/>
+        <!-- Included so it doesn't annoy me -->
+        <option name="exitCodeBehavior" value="NEVER"/>
+        <option name="fileExtension" value="scss"/>
+        <option name="immediateSync" value="true"/>
+        <option name="name" value="Compile SCSS"/>
+        <option name="output" value="public/css/$FileNameWithoutExtension$.css:public/css/$FileNameWithoutExtension$.css.map"/>
+        <option name="outputFilters">
+            <array/>
+        </option>
+        <option name="outputFromStdout" value="false"/>
+        <option name="program" value="sass"/> <!-- Using the sass compiler -->
+        <option name="runOnExternalChanges" value="true"/>
+        <option name="scopeName" value="Project Files"/>
+        <option name="trackOnlyRoot" value="true"/>
+        <option name="workingDir" value="$FileDir$"/>
+        <envs/>
+    </TaskOptions>
+    <TaskOptions>
+        <option name="arguments" value="$FilePathRelativeToProjectRoot$ --out-dir public/js --source-maps --presets @babel/env"/>
+        <option name="checkSyntaxErrors" value="true"/>
+        <option name="description"/>
+        <option name="exitCodeBehavior" value="NEVER"/>
+        <option name="fileExtension" value="js"/>
+        <option name="immediateSync" value="true"/>
+        <option name="name" value="Compile JS"/>
+        <option name="output" value="public/js/$FileNameWithoutExtension$.js:public/js/$FileNameWithoutExtension$.js.map"/>
+        <option name="outputFilters">
+            <array/>
+        </option>
+        <option name="outputFromStdout" value="false"/>
+        <option name="program" value="$ProjectFileDir$/node_modules/.bin/babel"/>
+        <option name="runOnExternalChanges" value="true"/>
+        <option name="scopeName" value="resources"/> <!-- Scope is /resources-->
+        <option name="trackOnlyRoot" value="false"/>
+        <option name="workingDir" value="$ContentRoot$"/>
+        <envs/>
+    </TaskOptions>
+    <TaskOptions>
+        <option name="arguments" value="$FileName$ -o $FileNameWithoutExtension$.min.js"/>
+        <option name="checkSyntaxErrors" value="true"/>
+        <option name="description"/>
+        <option name="exitCodeBehavior" value="NEVER"/>
+        <option name="fileExtension" value="js"/>
+        <option name="immediateSync" value="true"/>
+        <option name="name" value="Minify JS"/>
+        <option name="output" value="$FileNameWithoutExtension$.min.js"/>
+        <option name="outputFilters">
+            <array/>
+        </option>
+        <option name="outputFromStdout" value="false"/>
+        <option name="program" value="uglifyjs"/>
+        <option name="runOnExternalChanges" value="true"/>
+        <option name="scopeName" value="public"/> <!-- Scope is /public -->
+        <option name="trackOnlyRoot" value="true"/>
+        <option name="workingDir" value="$FileDir$"/>
+        <envs/>
+    </TaskOptions>
+    <TaskOptions>
+        <option name="arguments" value="-i $FileName$ -o $FileNameWithoutExtension$.min.css"/>
+        <option name="checkSyntaxErrors" value="true"/>
+        <option name="description"/>
+        <option name="exitCodeBehavior" value="NEVER"/>
+        <option name="fileExtension" value="css"/>
+        <option name="immediateSync" value="true"/>
+        <option name="name" value="Minify CSS"/>
+        <option name="output" value="$FileNameWithoutExtension$.min.css"/>
+        <option name="outputFilters">
+            <array/>
+        </option>
+        <option name="outputFromStdout" value="false"/>
+        <option name="program" value="csso"/>
+        <option name="runOnExternalChanges" value="true"/>
+        <option name="scopeName" value="public"/> <!-- Scope is /public -->
+        <option name="trackOnlyRoot" value="true"/>
+        <option name="workingDir" value="$FileDir$"/>
+        <envs/>
+    </TaskOptions>
+</TaskOptions>
