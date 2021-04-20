@@ -43,13 +43,21 @@ $(window).on('hashchange', function () {
 });
 
 function toPage(id) {
+  resetTimeout(); // Clear timeout
   // Disable all type buttons so that hitting tab wont focus on them
+
   $('.member-types__type').prop('disabled', true);
   $types.addClass('member-types--hidden'); // Add the hidden class to hide it
 
   $pages.removeClass('sign-pages--hidden'); // Remove the hidden class to show it
 
   $(".sign-pages__page[page-id=\"".concat(id, "\"]")).removeClass('sign-pages__page--hidden'); // Remove the hidden class for the current page
+
+  if (id === 'member') {
+    $memberName.focus();
+  } else {
+    $guestName.focus();
+  }
 }
 
 function resetPage() {
@@ -74,6 +82,9 @@ function resetPage() {
   $memberSubmit.prop('disabled', true); // Disable the member submit button
 
   clearMembersList(); // Clear the list of members
+
+  $memberName.blur();
+  $guestName.blur();
 } // Make the back button reset the page
 
 
@@ -238,7 +249,9 @@ function fillMembersList() {
 
 
 $memberName.on('input', function () {
-  return fillMembersList($memberName.val());
+  resetTimeout(); // Make sure we don't timeout mid typing
+
+  fillMembersList($memberName.val());
 }); // When a key is released for the GuestName input
 
 $memberName.on('keyup', function (e) {
@@ -333,10 +346,29 @@ function showToast(text) {
 } // Clear the page hash on reload
 
 
-clearHash(); // Only load members on the main page not /attending
+clearHash();
+/* WINDOW TIMEOUT CODE */
+
+var TIMEOUT_DELAY = 60 * 1000;
+/* 60 Seconds */
+
+var timeoutID = -1;
+
+function clearScreen() {
+  resetPage();
+  loadMembers();
+  resetTimeout();
+}
+
+function resetTimeout() {
+  clearTimeout(timeoutID);
+  timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY);
+} // Only load members on the main page not /attending
+
 
 if (document.location.pathname !== '/attending') {
   loadMembers();
+  timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY);
 }
 /*
 *   End Loading Handling & Toasts
@@ -353,10 +385,12 @@ if (document.location.pathname !== '/attending') {
 
 $memberSubmit.on('click', function () {
   if (selectedMember == null) return; // If there is no selected member return
+  // Save the attendance
 
-  var name = selectedMember; // Save the attendance
-
-  saveAttendance(name, true);
+  saveAttendance(selectedMember, true);
+});
+$guestName.on('input', function () {
+  resetTimeout(); // Make sure we don't timeout mid typing
 }); // When a key is released for the GuestName input
 
 $guestName.on('keyup', function (e) {

@@ -11,6 +11,10 @@ RUN npm install
 
 COPY . .
 
+# Timezone
+RUN apk add --no-cache tzdata
+ENV TZ Pacific/Auckland
+
 # APPLICATION PORT
 EXPOSE 8080
 ENV PORT 8080

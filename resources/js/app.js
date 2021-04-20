@@ -35,11 +35,17 @@ $(window).on('hashchange', () => {
 })
 
 function toPage(id) {
+    resetTimeout(); // Clear timeout
     // Disable all type buttons so that hitting tab wont focus on them
     $('.member-types__type').prop('disabled', true);
     $types.addClass('member-types--hidden'); // Add the hidden class to hide it
     $pages.removeClass('sign-pages--hidden'); // Remove the hidden class to show it
     $(`.sign-pages__page[page-id="${id}"]`).removeClass('sign-pages__page--hidden'); // Remove the hidden class for the current page
+    if (id === 'member') {
+        $memberName.focus();
+    } else {
+        $guestName.focus();
+    }
 }
 
 function resetPage() {
@@ -54,6 +60,8 @@ function resetPage() {
     selectedMember = null; // Set the selected member to done
     $memberSubmit.prop('disabled', true); // Disable the member submit button
     clearMembersList(); // Clear the list of members
+    $memberName.blur();
+    $guestName.blur();
 }
 
 // Make the back button reset the page
@@ -192,7 +200,10 @@ function fillMembersList(name = null) {
 }
 
 // Change the contents of the members list when the name changes
-$memberName.on('input', () => fillMembersList($memberName.val()))
+$memberName.on('input', () => {
+    resetTimeout(); // Make sure we don't timeout mid typing
+    fillMembersList($memberName.val())
+});
 // When a key is released for the GuestName input
 $memberName.on('keyup', (e) => {
     if (e.keyCode === 13) { // Enter key pushed
@@ -262,9 +273,26 @@ function showToast(text, undoCallback = null, error = false, duration = 2500) {
 
 // Clear the page hash on reload
 clearHash();
+
+/* WINDOW TIMEOUT CODE */
+const TIMEOUT_DELAY = 60 * 1000; /* 60 Seconds */
+let timeoutID = -1;
+
+function clearScreen() {
+    resetPage();
+    loadMembers();
+    resetTimeout();
+}
+
+function resetTimeout() {
+    clearTimeout(timeoutID);
+    timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY);
+}
+
 // Only load members on the main page not /attending
 if (document.location.pathname !== '/attending') {
     loadMembers();
+    timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY)
 }
 
 
@@ -282,10 +310,13 @@ if (document.location.pathname !== '/attending') {
 
 $memberSubmit.on('click', () => {
     if (selectedMember == null) return; // If there is no selected member return
-    const name = selectedMember;
     // Save the attendance
-    saveAttendance(name, true);
+    saveAttendance(selectedMember, true);
 });
+
+$guestName.on('input', () => {
+    resetTimeout(); // Make sure we don't timeout mid typing
+})
 
 // When a key is released for the GuestName input
 $guestName.on('keyup', (e) => {
@@ -360,4 +391,4 @@ $('.attendance__list__item__buttons__button').on('click', function () {
         // Remove the attendance for that name
         removeAttendance(name, () => $button.parents('.attendance__list__item').remove());
     }
-})
+});
