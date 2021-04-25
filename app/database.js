@@ -15,7 +15,7 @@ const addAttendance = (name, member) => new Promise((resolve, reject) => {
     connection.query('INSERT INTO `attendance_record`(`full_name`, `registered`, `arrival_date`, `arrival_time`) VALUES (?, ?, CURRENT_DATE(), CURRENT_TIME())',
         [name, +member] /* Convert the member bool to an int */, err => {
             if (err != null) {  // If there is an error retrieving the data
-                console.error('ERROR Failed to add attendance with db: '+ err)
+                console.error('ERROR Failed to add attendance with db: ' + err)
                 reject(); // Reject the promise
             } else {
                 resolve(); // Resolve the promise because it was added
@@ -25,13 +25,20 @@ const addAttendance = (name, member) => new Promise((resolve, reject) => {
 
 const getAttending = (date) => new Promise((resolve, reject) => {
     // Query the database finding all results that match today's date
+<<<<<<< Updated upstream
     connection.query('SELECT `full_name`, `registered`, `arrival_time` FROM `attendance_record` WHERE arrival_date = DATE(?)',
         [date.format('YYYY-DD-MM')],
         (err, result) => {
         console.log(result)
+=======
+    connection.query('SELECT `full_name`, `registered`, `arrival_time` FROM `attendance_record` WHERE `arrival_date` = ?',
+        [date.format('YYYY-MM-DD').toString()],
+        (err, result) => {
+            console.log(result, date.format('YYYY-MM-DD'));
+>>>>>>> Stashed changes
 
             if (err != null) { // If there is an error retrieving the data
-                console.error('ERROR Failed to get attendance with db: '+ err)
+                console.error('ERROR Failed to get attendance with db: ' + err)
                 reject(); // Reject the promise
             } else {
                 // Resolve the promise with the mapped result
@@ -54,7 +61,7 @@ const isAttending = name => new Promise((resolve, reject) => {
     connection.query('SELECT `attendance_id` FROM `attendance_record` WHERE `arrival_date` = CURRENT_DATE() AND full_name = ? LIMIT 1',
         [name], (err, result) => {
             if (err != null) { // If there is an error retrieving the data
-                console.error('ERROR Failed to check attendance with db: '+ err)
+                console.error('ERROR Failed to check attendance with db: ' + err)
                 reject();  // Reject the promise
             } else {
                 resolve(result !== null && result.length > 0); // Resolve the promise as true if there are any results
@@ -67,7 +74,7 @@ const removeAttendance = name => new Promise((resolve, reject) => {
     connection.query('DELETE FROM attendance_record WHERE full_name = ? AND arrival_date = CURRENT_DATE() LIMIT 1',
         [name], err => {
             if (err != null) { // If there is an error retrieving the data
-                console.error('ERROR Failed to remove attendance with db: '+ err)
+                console.error('ERROR Failed to remove attendance with db: ' + err)
                 reject();  // Reject the promise
             } else {
                 resolve(); // Resolve the promise
