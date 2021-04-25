@@ -1,71 +1,365 @@
 // Clears the window hash
 const clearHash = () => history.pushState("", document.title, window.location.pathname + window.location.search);
 
-const $types = $('#types');
-const $pages = $('#pages');
-const $loader = $('#loader');
-const $loaderText = $('#loaderText');
+const $types = document.getElementById('types');
+const $pages = document.getElementById('pages');
+const $loader = document.getElementById('loader');
 
-const $guestName = $('#guestName');
-const $memberName = $('#memberName');
+const $guestName = document.getElementById('guestName');
+const $memberName = document.getElementById('memberName');
 
-const $guestSubmit = $('#guestSubmit');
-const $memberSubmit = $('#memberSubmit');
+const $guestSubmit = document.getElementById('guestSubmit');
+const $memberSubmit = document.getElementById('memberSubmit');
+
+const $membersList = document.getElementById('membersList');
 
 /*
+*   Start Utilities
+*
+*   This section of code contains utility functions such
+*   as loader controls, element manipulation, and networking
+*
+*/
+
+/**
+ *  Elements - Collects all elements matching the selector
+ *  and runs the callback function with the element as the
+ *  value
+ *
+ *  @param selector The css selector to get the elements for
+ *  @param callback The callback function to run for each element
+ */
+function elements(selector, callback) {
+    // Query the selector for all its elements then loop through them
+    for (let i = 0, v = document.querySelectorAll(selector); i < v.length; i++) {
+        callback(v[i]); // Run the callback with the element
+    }
+}
+
+/**
+ *  NonNull - Checks to make sure the provided element is not null
+ *  then runs the callback if true
+ *
+ *  @param element The element to check if null
+ *  @param callback The callback function to run if not null
+ */
+function nonNull(element, callback) {
+    // Ensure not undefined and not null
+    if (element !== undefined && element !== null) callback(element); // Run callback with element
+}
+
+/**
+ *  TriggerClick - Triggers a click event on the provided element
+ *
+ *  @param element The element to click
+ */
+function triggerClick(element) {
+    const event = document.createEvent('MouseEvents'); // Create a new mouse event
+    event.initEvent('click', true, true); // Initialize a click event
+    element.dispatchEvent(event); // Dispatch the event
+}
+
+/**
+ *  IsEnterKey - A Utility function which takes in a keyboard event
+ *  and returns whether or not the pressed key was the Enter key
+ *
+ *  @param event The keyboard event
+ *  @return boolean Whether or not enter was pressed
+ */
+function isEnterKey(event) {
+    let code;
+    if (event["key"] !== undefined) {
+        code = event["key"];
+    } else if (event["keyIdentifier"] !== undefined) {
+        code = event["keyIdentifier"];
+    } else if (event["keyCode"] !== undefined) {
+        code = event["keyCode"];
+    }
+    return code === 'Enter' || code === 'Return' || code === 13;
+}
+
+/**
+ *  RemoveChildren - Removes all the child elements of the
+ *  provided element
+ *
+ *  @param element The element to remove the children of
+ */
+function removeChildren(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+/* == Loader manipulation == */
+
+/**
+ *  ShowLoader - Removes the hidden class from the loader element
+ *  making it visible
+ */
+function showLoader() {
+    $loader.classList.remove('loading-bar--hidden'); // Remove the class
+}
+
+/**
+ *  HideLoader - Adds the hidden class to the loader element
+ *  making it hidden
+ */
+function hideLoader() {
+    $loader.classList.add('loading-bar--hidden'); // Add the class
+}
+
+/* == Toast manipulation == */
+
+let toastHandle = -1; // The current toast timeout handle (For resetting the timeout)
+let toastEventListener = null; // The current toast event listener (For handling Undo button clicks)
+
+/**
+ *  ShowToast - Displays the toast popup at the top of the window for
+ *  the desired duration with the provided message
+ *
+ * @param text The message to display in the toast
+ * @param undoCallback The function to run when "Undo" is pressed or null for no undo button
+ * @param error Whether or not this is a error toast which should be displayed in red
+ * @param duration The duration to display this toast for
+ */
+function showToast(text, undoCallback = null, error = false, duration = 2500) {
+    const toast = document.getElementById('toast'); // The toast element
+    const toastText = document.getElementById('toastText');
+    const toastUndo = document.getElementById('toastUndo');
+    if (error) { // If the toast is an error toast
+        toast.classList.add('toast--error'); // Add the error class
+    } else { // Otherwise
+        toast.classList.remove('toast--error'); // Remove the error class if its there
+    }
+    if (toastEventListener != null) { // If there is already a click listener
+        // Clear the current click listener this prevents the bug
+        // that causes all changes to be reverted when undo is pressed
+        toastUndo.removeEventListener('click', toastEventListener);
+    }
+    // Create the toast event listener by running the undo callback
+    // if its not null
+    toastEventListener = () => undoCallback != null && undoCallback();
+    // Add the callback to the undo button
+    toastUndo.addEventListener('click', toastEventListener);
+    if (undoCallback == null) { // If there is not a undo callback
+        toastUndo.classList.add('toast__undo--hidden'); // Hide the "Undo" button
+    } else { // Otherwise
+        toastUndo.classList.remove('toast__undo--hidden'); // Show the "Undo" button
+    }
+    // Set the toast text content to the provided text
+    toastText.textContent = text;
+    // Remove the hidden class from the toast
+    toast.classList.remove('toast--hidden');
+    if (toastHandle !== -1) { // If a toast handle is already active
+        clearTimeout(toastHandle); // Clear the timeout handle
+    }
+    // Assign the handle to a new timeout
+    toastHandle = setTimeout(() => { // Once the timeout is complete
+        toast.classList.add('toast--hidden'); // Hide the toast
+        if (toastEventListener != null) { // Remove the event listener if one is attached
+            toastUndo.removeEventListener('click', toastEventListener);
+        }
+    }, duration);
+}
+
+/* == Networking == */
+
+/**
+ *  Request - Creates a XMLHttpRequest object with the provided method, url,
+ *  headers and executes the callback function when loaded or on error
+ *
+ *  @param method The HTTP request method
+ *  @param url The HTTP request url
+ *  @param headers The HTTP request headers
+ *  @param callback The callback to run once the request is complete
+ */
+function request(method, url, headers, callback) {
+    const request = new XMLHttpRequest(); // Create a new XMLHttpRequest
+    request.open(method, url, true); // Open the request
+    const headerKeys = Object.keys(headers); // Get all the header keys
+    for (let i = 0; i < headerKeys.length; i++) { // Loop the header keys
+        const key = headerKeys[i]; // Get the header key
+        const value = headers[key]; // Get the header value using its key
+        request.setRequestHeader(key, value); // Set the request header to the Key: Value
+    }
+    request.onload = function () { // When the request is loaded
+        // When the status is between 200 and 400
+        if (this.status >= 200 && this.status <= 400) {
+            const data = JSON.parse(this.response); // Parse the JSON response
+            callback(null, data); // Run the callback with the response data
+        } else {
+            // Run the callback with an error message
+            callback('Connected to server but unable to process request.', null);
+        }
+    }
+    request.onerror = function () { // When a connection problem occurs
+        // Run the callback with an error message
+        callback('Unable to connect to server', null)
+    }
+    // Return the request object so that we can send it
+    return request;
+}
+
+/**
+ *  EncodeForm - Converts a object into a application/x-www-form-urlencoded
+ *  form by joining all the data together
+ *
+ *  @param data The object to convert to form data
+ *  @return string The form data (e.g username=user&password=pass)
+ */
+function encodeForm(data) {
+    let output = ''; // Create the empty output
+    const keys = Object.keys(data); // Get all of the object keys
+    for (let i = 0; i < keys.length; i++) { // Loop through the keys
+        const key = keys[i]; // Get the current key
+        const value = data[key]; // Get the current value with the key
+        // Append the encoded data to output
+        output += encodeURIComponent(key) + '=' + encodeURIComponent(value) + '&';
+    }
+    // Return the output with the last & trimmed off
+    return output.substr(0, output.length - 1);
+}
+
+/**
+ *  Get - Sends a GET request to the provided url and runs
+ *  the callback when done
+ *
+ *  @param url The HTTP request url
+ *  @param callback The callback to run once the request is complete
+ */
+function get(url, callback) {
+    request('GET', url, {
+        'Accept': 'application/json; charset=UTF-8', // We only need to accept JSON
+    }, callback).send() // Create and send the request
+}
+
+
+/**
+ *  Post - Sends a POST request to the provided url with the
+ *  provided form data and runs the callback when done
+ *
+ *  @param url The HTTP request url
+ *  @param data The HTTP request form data
+ *  @param callback The callback to run once the request is complete
+ */
+function post(url, data, callback) {
+    request('POST', url, {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json; charset=UTF-8',
+    }, callback).send(encodeForm(data)); // Create the request and send the encoded form
+}
+
+/**
+ *  Del/Delete - Sends a DELETE request to the provided url with the
+ *  provided form data and runs the callback when done
+ *
+ *  @param url The HTTP request url
+ *  @param data The HTTP request form data
+ *  @param callback The callback to run once the request is complete
+ */
+function del(url, data, callback) {
+    request('DELETE', url, {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Accept': 'application/json; charset=UTF-8',
+    }, callback).send(encodeForm(data)); // Create the request and send the encoded form
+}
+
+
+/*
+*
+*   End Utilities
+*
+*   ########################
+
 *   Start Page Manipulation
 *
 *   This section of code controls the changing of the page
 *   contents when the window hash changes
-*   (#member, $guest, #facilitator)
+*   (#member, $guest)
 *
 */
 
-$(window).on('hashchange', () => {
+// When the window hash code changes
+window.onhashchange = () => {
     const hash = window.location.hash // The current window hash (e.g #guest)
-    const pages = ["guest", "member", "facilitator"]; // A list of the valid pages
+    const pages = ["guest", "member"]; // A list of the valid pages
     if (hash.length < 1) {  // The hash was removed so we can ignore it
+        /*
+        * If the hash was removed we don't want to make changes
+        * Because it was most likely changes via resetPage()
+        */
         return;
     }
     const page = hash.substr(1); // We remove the # from the hash to get the page name
-    if (!pages.includes(page)) {  // Check if the page isn't valid
-        return resetPage(); // Reset the page
+    if (!pages.includes(page)) {  // Make sure the hash value is listed in the pages
+        return resetPage(); // If not reset the page (this corrects the hash)
     }
-    toPage(page); // Open the page
-})
+    toPage(page); // Open the selected page
+}
 
+/**
+ *  ToPage - Shows the selected page
+ *
+ *  @param id The id of the page to show
+ */
 function toPage(id) {
-    resetTimeout(); // Clear timeout
-    // Disable all type buttons so that hitting tab wont focus on them
-    $('.member-types__type').prop('disabled', true);
-    $types.addClass('member-types--hidden'); // Add the hidden class to hide it
-    $pages.removeClass('sign-pages--hidden'); // Remove the hidden class to show it
-    $(`.sign-pages__page[page-id="${id}"]`).removeClass('sign-pages__page--hidden'); // Remove the hidden class for the current page
-    if (id === 'member') {
-        $memberName.focus();
-    } else {
-        $guestName.focus();
+    resetTimeout(); // Clear the current timeout (we dont want to reset the page right after opening it)
+    // Disable all type buttons so we cant accidentally tab select them
+    elements('.member-types__type', element => element.disabled = true);
+    $types.classList.add('member-types--hidden'); // Hide the types page so it goes out of view
+    $pages.classList.remove('sign-pages--hidden'); // Show the sign-in page so that its visible
+    // Get the current page via its id
+    const currentPage = document.querySelector('.sign-pages__page[page-id="' + id + '"]');
+    // Remove the hidden class for the current page so its visible
+    nonNull(currentPage, element => element.classList.remove('sign-pages__page--hidden'));
+    if (id === 'member') { // If we are selecting the member page
+        $memberName.focus(); // Focus the member input
+    } else { // Otherwise
+        $guestName.focus(); // Focus the guest input
     }
 }
 
+/**
+ *  ResetPage - Resets the page to its default state,
+ *  clears all the inputs, clears the page hash, takes
+ *  inputs out of focus and shows main menu
+ */
 function resetPage() {
-    $('.member-types__type').prop('disabled', false); // Make the member types not hidden
-    $types.removeClass('member-types--hidden'); // Remove the hidden class to show it
-    $pages.addClass('sign-pages--hidden'); // Add the hidden class to hide it
-    $('.sign-pages__page').addClass('sign-pages__page--hidden'); // Add hidden class to hide the pages
-    clearHash(); // Clear the current page
-    $guestName.val(''); // Reset the guest name
-    $memberName.val('');  // Reset the member name
-    $('.members__list__item').prop('checked', false); // Uncheck all the members radio buttons
+    resetTimeout(); // Reset the page timeout
+    // Enables all the type buttons again so they can be pushed
+    elements('.member-types__type', element => element.disabled = false);
+    $types.classList.remove('member-types--hidden'); // Show the tpyes page so it comes into view
+    $pages.classList.add('sign-pages--hidden'); // Hide the sign-in page so it goes out of view
+    elements('.sign-pages__page', element => element.classList.add('sign-pages__page--hidden')); // Hide all sign-in pages
+    clearHash(); // Clear the window hash so that the next user will always get the home page
+    $guestName.value = ''; // Clear the guest name input
+    $memberName.value = '';  // Clear the member name input
+    elements('.members__list__item', e => e.checked = false); // Uncheck all the members radio buttons
     selectedMember = null; // Set the selected member to done
-    $memberSubmit.prop('disabled', true); // Disable the member submit button
-    clearMembersList(); // Clear the list of members
-    $memberName.blur();
-    $guestName.blur();
+    $guestSubmit.disabled = true; // Disable the guest submit button
+    $memberSubmit.disabled = true; // Disable the member submit button
+    removeChildren($membersList); // Remove all the members list children
+    $memberName.blur(); // Take the member name input out of focus
+    $guestName.blur(); // Take the guest name input out of focus
 }
 
-// Make the back button reset the page
-$('#signBack').on('click', () => resetPage())
+/**
+ *  SetCacheBadge - Changes the visibility of the "Cached" badge in the
+ *  top corner of the screen indicating if the response is cached or not
+ *
+ *  @param cached Whether or not the list is cached
+ */
+function setCacheBadge(cached) {
+    const $cacheIndicator = document.getElementById('cacheIndicator');
+    if (cached) {
+        $cacheIndicator.classList.remove('cache-indicator--hidden');
+    } else {
+        $cacheIndicator.classList.add('cache-indicator--hidden');
+    }
+}
+
+// Add the functionality for the back button
+nonNull(document.getElementById('signBack'), element => element.onclick = () => resetPage());
 
 /*
 *   End Page Manipulation
@@ -83,232 +377,204 @@ $('#signBack').on('click', () => resetPage())
 let members = [];
 let selectedMember = null; // Stores the selected member
 
+/**
+ *  LoadMembers - Loads the list of members from the backend server
+ *  and displays a loader while its happening then updates the cache
+ *  badge when done
+ */
 function loadMembers() {
     // Display the loader so the user knows whats happening
-    showLoader('Loading Members...');
+    showLoader();
     // A Function that is called if we failed
-    const fail = (point) => showToast('Failed to load members... POINT=' + point, null, true);
+    const fail = (reason) => showToast('Failed to load members: ' + reason, null, true);
     // Ajax request to /members the backend endpoint for the members list
-    $.get('/members')
-        // If the request succeeds
-        .done(res => {
-            // Make sure the request isn't malformed
-            if (!res.hasOwnProperty('status')) {
-                fail(0); // Failed because missing status
-            } else {
-                if (res.status === 'success' && res.hasOwnProperty("members")) {
+    get('/members', (err, res) => {
+        if (err != null) {
+            fail(err); // Warn the user
+        } else {
+            if (!res.hasOwnProperty('status')) { // If the request is missing a status
+                fail('Malformed Server Response status missing'); // Warn the user
+            } else { // Otherwise
+                if (res.status === 'success'
+                    && res.hasOwnProperty("members")
+                    && res.hasOwnProperty("cached")
+                ) { // Make sure the request has all the required data
                     members = res.members;
+                    setCacheBadge(res.cached); // Set the cache badge
                 } else {
-                    fail(1);
+                    fail('Malformed Server Response'); // Warn the user
                 }
             }
-        })
-        // If the request fails
-        .fail(() => fail(2))
-        // We always want to close the loader no matter the result
-        .always(() => hideLoader());
+        }
+        // Always hide the loader
+        hideLoader();
+    })
 }
 
-function getRelevantMembers(name) {
-
-    /*
-    *   Names are ranked using a score from 0 - 8
-    *   the score is determined by how much matching
-    *   parts the name has with the member
-    *
-    *   Full Match: 4
-    *   Start Match +2
-    *   Contains Match +1
-    *
-    *   All of these can stack up except for the full match
-    */
-
-    // If the name is null we ignore everyone
-    if (name == null) {
-        return [];
+/**
+ *  GetRelevantMembers - Filters the members list based on the provided query
+ *  and sorts the list based on how much of a match it is
+ *
+ *  Names are ranked using a score from 0 - 8
+ *  the score is determined by how much matching
+ *  parts the name has with the member
+ *
+ *  Full Match: 4
+ *  Start Match +2
+ *  Contains Match +1
+ *
+ *   All of these can stack up except for the full match
+ *
+ *  @param query The name search query
+ *  @return array The filtered list of members
+ */
+function getRelevantMembers(query) {
+    // If the query is null we ignore everyone
+    if (query == null) {
+        return []; // Return an empty array
     }
-    name = name.toLowerCase();
-    const matching = [];
-    // Each of the names and their rankings
-    const rankings = {};
-    members.forEach(member => {
-        const lowerName = member.toLowerCase();
-        let ranking = 0;
-        if (name === lowerName) {
-            ranking = 4;
+    query = query.toLowerCase(); // The lowercase query
+    const matching = []; // The matching results
+    const rankings = {}; // The rankings for each result
+    for (let i = 0; i < members.length; i++) { // Loop through all the members
+        const member = members[i]; // Get the member
+        const memberLower = member.toLowerCase(); // Get a lowercase copy of the name for ignore case matching
+        let ranking = 0; // The current member ranking
+        if (query === memberLower) { // If we a complete match
+            ranking = 4; // Set the highest available ranking
         } else {
-            if (lowerName.startsWith(name)) ranking += 2;
-            if (lowerName.indexOf(name) >= 0) ranking += 1;
+            // If the name starts with the query set the second highest ranking
+            if (memberLower.startsWith(query)) ranking += 2;
+            // If the name contains the query increase the ranking
+            if (memberLower.indexOf(query) >= 0) ranking += 1;
         }
+        // Set the ranking of the member to its ranking
         rankings[member] = ranking;
-        if (ranking > 0) {
-            matching.push(member);
+        if (ranking > 0) { // If the ranking is greater than 0
+            matching.push(member); // Add it to the matching list
         }
-    });
+    }
     // Sort the names with their ranking (inverted sorting so higher ranks appear first)
     matching.sort((a, b) => rankings[b] - rankings[a]);
+    // Return the matching names
     return matching;
 }
 
-// Clear the list of members
-function clearMembersList() {
-    const $membersList = $('#membersList');
-    $membersList.children().remove(); // Remove all the children
-}
 
-// Fill the list of members with names relevant to the search
-function fillMembersList(name = null) {
-    if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
-    const $membersList = $('#membersList');
-    const members = getRelevantMembers(name); // Get the members relevant to the search
-    clearMembersList(); // Clear the list of members
-    // Loop through all the members
-    let tabIndex = 5;
-    members.forEach(member => {
+/**
+ *  FillMembersList - Fills the members list with the members radio buttons
+ *  and clears the current contents
+ *
+ *  @param query The name search query
+ */
+function fillMembersList(query = null) {
+    if (query == null || query.length === 0) query = null; // If the query is empty we just make it null
+    const members = getRelevantMembers(query); // Get the members relevant to the search
+    removeChildren($membersList); // Remove all the members list children
+    let tabIndex = 5; // The current page tab index
+    for (let i = 0; i < members.length; i++) { // Loop through all the members
+        const member = members[i]; // Get the current member
         // Create the label wrapping so the whole thing acts a radio button
-        const $item = $('<label/>', {class: 'members__list__item', text: member, tabindex: tabIndex});
-        tabIndex++;
-        // Create the radio button
-        const $radio = $('<input/>', {
-            type: 'radio',
-            name: 'members',
-            class: 'members__list__item__button',
-            value: member,
-        });
+        const $item = document.createElement('label');
+        $item.classList.add('members__list__item'); // Add the list item class
+        $item.textContent = member; // Set the element text content
+        /*
+        * Fixed window tabbing in commit
+        * e3641cf4874c884437c95e8be6457e8e84e69fa5
+        * using tabIndex
+        */
+        $item.tabIndex = tabIndex; // Set the element tab index
+        tabIndex++; // Increase the tab index
 
-        $item.on('keydown', function (e) {
-            if (e.keyCode === 13) {
-                const $radio = $($(this).children()[0]);
-                $radio.trigger('click');
-                $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
-                $memberSubmit.trigger('click'); // Click the button
+        // Create the radio button
+        const $radio = document.createElement('input');
+        $radio.type = 'radio'; // Set the input type to radio button
+        $radio.name = 'members'; // Set the radio name to "members" so its grouped with the others
+        $radio.classList.add('members__list__item__button'); // Add the button class
+        $radio.value = member; // Set the value to the member name
+
+        $item.onkeydown = e => { // When a key is pressed while the item is focused
+            if (isEnterKey(e)) { // If the enter key is pressed
+                const $radio = $item.childNodes.item(0); // Get the first child (this is the radio button)
+                triggerClick($radio); // Click the radio button to select it
+                $memberSubmit.disabled = selectedMember == null; // Set the submit button disabled state
+                triggerClick($memberSubmit); // Click the submit button
             }
-        })
-        // Set the click logic for the radio button
-        $radio.on('change', function () {
-            const $button = $(this); // Get a jquery instance of the button
-            const $parent = $button.parent(); // Get the parent element
-            const checked = $button.is(':checked'); // Check if the button is checked
-            if (checked) {
-                if ($parent.hasClass('members__list__item--selected')) { // Add unselect functionality
-                    $parent.removeClass('members__list__item--selected') // Remove the selected class
-                    selectedMember = null; // Clear the selected member
-                    $button.prop('checked', false) // Set the checked state
+        }
+
+        $radio.onclick = () => { // When the radio button is clicked
+            const parent = $radio.parentNode;  // Get the parent element
+            if ($radio.checked) { // If the button is checked
+                if (parent.classList.contains('members__list__item--selected')) { // If its already selected
+                    triggerClick($memberSubmit); // Double click triggers save so submit
                 } else {
-                    $('.members__list__item').removeClass('members__list__item--selected'); // Remove the selected class from the other elements
-                    $parent.addClass('members__list__item--selected'); // Add the selected class
-                    selectedMember = $button.attr('value'); // Set the selected member to the value of the radio button
+                    // Remove the selected class from the other elements
+                    elements('.members__list__item', e => e.classList.remove('members__list__item--selected'));
+                    parent.classList.add('members__list__item--selected'); // Add the selected class
+                    selectedMember = $radio.value; // Set the selected member to the value of the radio button
                 }
             }
             // Set the done button to disabled if the selected member is null otherwise enable it
-            $memberSubmit.prop('disabled', selectedMember == null);
-        })
+            $memberSubmit.disabled = selectedMember == null;
+        }
+
         // Append the radio button to the item
-        $radio.appendTo($item);
+        $item.appendChild($radio);
         // Append the item to the members list
-        $item.appendTo($membersList);
-    });
+        $membersList.appendChild($item);
+    }
 }
 
-// Change the contents of the members list when the name changes
-$memberName.on('input', () => {
-    resetTimeout(); // Make sure we don't timeout mid typing
-    fillMembersList($memberName.val())
-});
-// When a key is released for the GuestName input
-$memberName.on('keyup', (e) => {
-    if (e.keyCode === 13) { // Enter key pushed
-        let name = $memberName.val();
-        if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
-        const viewMembers = getRelevantMembers(name);
-        if (viewMembers.length > 0) { // Make sure we have members
-            selectedMember = viewMembers[0]; // Selected the first member
-            $('.members__list__item__button[value="' + selectedMember + '"]').trigger('click'); // Select the corresponding input
-            $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
-            $memberSubmit.trigger('click'); // Click the button
-        }
-    }
-});
+/*
+*   Clear the page hash on reload to ensure
+*   The user is always give the main page
+*/
+clearHash();
+
 
 /*
 *   End Member Handling
 *
 *   ########################
 *
-*   Start Loading Handling & Toasts
+*   Start Timeout Handling
 *
-*   This section of code controls the displaying and hiding
-*   of page loaders and toasts
+*   This section of code handles the automatic timeout of the
+*   window which resets the page every 60 seconds so that
+*   if someone presses a button then leaves it will return
+*   to the main menu
 *
 */
 
-function showLoader(text = "Loading...") {
-    $loader.addClass('loader__wrapper--open'); // Add the open loader class
-    $loaderText.val(text); // Set the text of the loader
-}
+const TIMEOUT_DELAY = 60 * 1000; // The delay to timeout after in milliseconds (60 seconds)
+let timeoutHandle = -1; // The handle for the current timeout
 
-function hideLoader() {
-    $loader.removeClass('loader__wrapper--open'); // Remove the loader open class
-}
-
-let currentToastTimeout = -1; // The timeout identifier of setTimeout for the toast
-
-function showToast(text, undoCallback = null, error = false, duration = 2500) {
-    const $toast = $('#toast');
-    const $toastText = $('#toastText');
-    const $toastUndo = $('#toastUndo');
-    if (error) { // If the toast in an error toast add the error class
-        $toast.addClass('toast--error');
-    } else { // Otherwise remove the error class
-        $toast.removeClass('toast--error');
-    }
-    // Bind bind the click event to the undo callback if it exists
-    $toastUndo.bind('click', () => undoCallback != null && undoCallback());
-    if (undoCallback == null) { // If there is no undo callback hide the undo button
-        $toastUndo.css('display', 'none');
-    } else {
-        $toastUndo.css('display', 'revert');
-    }
-    $toastText.text(text); // Set the toast text
-    $toast.removeClass('toast--hidden'); // Remove the toast hidden class
-    if (currentToastTimeout !== -1) { // If there is already a timeout
-        clearTimeout(currentToastTimeout); // Clear the current timeout
-    }
-    // Set the timeout to a new setTimeout
-    currentToastTimeout = setTimeout(() => { // When the duration is complete
-        $toast.addClass('toast--hidden'); // Add the hidden class again
-        $toastUndo.unbind('click'); // Unbind the click callback
-    }, duration);
-}
-
-
-// Clear the page hash on reload
-clearHash();
-
-/* WINDOW TIMEOUT CODE */
-const TIMEOUT_DELAY = 60 * 1000; /* 60 Seconds */
-let timeoutID = -1;
-
+/**
+ *  ClearScreen - Clears the screen when the page timeout has finished
+ *  and loads the members list again
+ */
 function clearScreen() {
-    resetPage();
-    loadMembers();
-    resetTimeout();
+    resetPage(); // Reset the page
+    loadMembers(); // Load the members list
 }
 
+/**
+ *  ResetTimeout - Resets the currently running window
+ *  timeout
+ */
 function resetTimeout() {
-    clearTimeout(timeoutID);
-    timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY);
+    clearTimeout(timeoutHandle); // Clear the current timeout using the handle
+    timeoutHandle = setTimeout(clearScreen, TIMEOUT_DELAY); // Set a new timeout to the handle
 }
 
-// Only load members on the main page not /attending
+// When we are not on the attendance page
 if (document.location.pathname !== '/attending') {
-    loadMembers();
-    timeoutID = setTimeout(clearScreen, TIMEOUT_DELAY)
+    loadMembers(); // Load the members list
+    resetTimeout(); // Set the window timeout
 }
-
 
 /*
-*   End Loading Handling & Toasts
+*   End Timeout Handling
 *
 *   ########################
 *
@@ -319,87 +585,148 @@ if (document.location.pathname !== '/attending') {
 *
 */
 
-$memberSubmit.on('click', () => {
-    if (selectedMember == null) return; // If there is no selected member return
-    // Save the attendance
-    saveAttendance(selectedMember, true);
+// Make sure the member submit button is not null
+nonNull($memberSubmit, element => {
+    // When the button is clicked
+    element.onclick = () => {
+        if (selectedMember != null) { //  if the selected member is not null
+            saveAttendance(selectedMember, true)// Save the attendance
+        }
+    };
 });
 
-$guestName.on('input', () => {
-    resetTimeout(); // Make sure we don't timeout mid typing
-})
-
-// When a key is released for the GuestName input
-$guestName.on('keyup', (e) => {
-    if (e.keyCode === 13) { // Enter key pushed
-        $guestSubmit.trigger('click'); // Click the button for the user
-    }
-});
-// When the guest submit button is clicked
-$guestSubmit.on('click', () => {
-    const name = $guestName.val();
-    if (name != null && name.length > 0) {
-        // Save the attendance
-        saveAttendance(name, false);
-    }
-});
-
-function saveAttendance(name, member) {
-    showLoader('Saving Attendance...');
-    // A Function that is called if we failed
-    const fail = (reason) => showToast('Failed to mark attendance: ' + reason, null, true);
-    $.post('/attendance', {name: name, member: member}).done(res => {
-        // Make sure the request isn't malformed
-        if (!res.hasOwnProperty('status')) {
-            fail('Malformed server data'); // Failed because missing status
-        } else {
-            if (res.status === 'success') {
-                // Show a toast telling the user its been marked
-                showToast('Successfully marked attendance for "' + name + '"', () => { // The callback that occurs if undo is pressed
-                    // Remove the attendance
-                    removeAttendance(name, () => { // After the attendance is removed
-                        showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
-                    })
-                });
-                // Take the user back to the main page
-                resetPage();
-            } else {
-                if (res.hasOwnProperty("reason")) {
-                    // Show a error toast
-                    showToast(res.reason, null, true);
-                } else fail('Unknown Reason');
+// Make sure the member name input is not null
+nonNull($memberName, element => {
+    // When a key is released for the GuestName input
+    element.onkeyup = event => {
+        if (isEnterKey(event)) {// Enter key pushed
+            let name = element.value; // Get the current name
+            if (name == null || name.length === 0) name = null; // If the name is empty we just make it null
+            const relevantMembers = getRelevantMembers(name);
+            if (relevantMembers.length > 0) { // Make sure we have members
+                selectedMember = relevantMembers[0]; // Selected the first member
+                $memberSubmit.disabled = selectedMember == null; // Set the disabled state of the submit button
+                triggerClick($memberSubmit); // Click the submit button
             }
         }
-    }).fail(() => fail('Unable to connect')) // The request failed
-        .always(() => hideLoader()); // Always close the loader no matter the result
+        resetTimeout(); // Make sure we don't timeout mid typing
+        fillMembersList(element.value); // Fill the members list filtered to the new query
+    }
+});
+
+// Make sure the guest name input is not null
+nonNull($guestName, element => {
+    // When a key is pressed on the guest name input
+    element.onkeyup = event => {
+        if (isEnterKey(event)) { // If the pressed key was enter
+            triggerClick($guestSubmit); // Click the guest submit button
+        }
+        resetTimeout(); // Make sure we don't timeout when typing
+        $guestSubmit.disabled = element.value.length < 1; // Set the submit button to disable if there is no name
+    }
+});
+
+// Make sure the guest submit button is not null
+nonNull($guestSubmit, element => {
+    // When the guest submit button is clicked
+    element.onclick = () => {
+        const name = $guestName.value; // Get the guest name
+        if (name != null && name.length > 0) {
+            // Save the attendance
+            saveAttendance(name, false);
+        }
+    }
+})
+
+/**
+ *  SaveAttendance - Sends a post request to the backend saving the
+ *  attendance for the provided name and setting guest based on the
+ *  provided member
+ *
+ *  @param name The name to mark attendance for
+ *  @param member Whether or not the attendance is of a member
+ */
+function saveAttendance(name, member) {
+    showLoader(); // Show the loader
+    // A Function that is called if we failed
+    const fail = (reason) => showToast('Failed to mark attendance: ' + reason, null, true);
+    post('/attendance', {name: name, member: member}, (err, res) => {
+        if (err != null) {
+            fail(err); // Fail because we couldn't connect
+        } else {
+            // Make sure the request isn't malformed
+            if (!res.hasOwnProperty('status')) {
+                fail('Malformed server data'); // Failed because missing status
+            } else {
+                if (res.status === 'success') {
+                    // Show a toast telling the user its been marked
+                    showToast('Successfully marked attendance for "' + name + '"', () => { // The callback that occurs if undo is pressed
+                        // Remove the attendance
+                        removeAttendance(name, () => { // After the attendance is removed
+                            showToast('Reverted attendance for "' + name + '"'); // Show a toast telling the user its been reverted
+                        });
+                    });
+                    // Take the user back to the main page
+                    resetPage();
+                } else {
+                    if (res.hasOwnProperty("reason")) {
+                        // Show a error toast
+                        showToast(res.reason, null, true);
+                    } else fail('Unknown Reason'); // Fail with an unknown reason
+                }
+            }
+        }
+        hideLoader(); // Always hide the loader
+    });
 }
 
 function removeAttendance(name, callback) {
-    showLoader('Removing Attendance...');
+    showLoader(); // Show the loader
     // A Function that is called if we failed
     const fail = (reason) => showToast('Failed to change attendance: ' + reason, null, true);
-    $.ajax('/attendance', {type: 'DELETE', data: {name: name}}).done(res => {
-        // Make sure the request isn't malformed
-        if (!res.hasOwnProperty('status')) {
-            fail('Malformed server data'); // Failed because missing status
+    del('/attendance', {name: name}, (err, res) => {
+        if (err != null) {
+            fail(err); // Fail because we couldn't connect
         } else {
-            if (res.status === 'success') {
-                // Show a toast letting the user know the attendance was marked
-                showToast('Successfully removed attendance for "' + name + '"', null);
-                // Run the callback
-                callback();
-            } else fail('Unknown Reason');
+            // Make sure the request isn't malformed
+            if (!res.hasOwnProperty('status')) {
+                fail('Malformed server data'); // Failed because missing status
+            } else {
+                if (res.status === 'success') {
+                    // Show a toast letting the user know the attendance was marked
+                    showToast('Successfully removed attendance for "' + name + '"', null);
+                    // Run the callback
+                    callback();
+                } else fail('Unknown Reason'); // Fail with an unknown reason
+            }
         }
-    }).fail(() => fail('Unable to connect')) // The request failed
-        .always(() => hideLoader()); // Always close the loader no matter the result
+        hideLoader(); // Always hide the loader
+    });
 }
 
-$('.attendance__list__item__buttons__button').on('click', function () {
-    const $button = $(this);
-    // The name of the attendance item
-    const name = $button.attr('data-name');
-    if (name !== undefined && name !== null) {
-        // Remove the attendance for that name
-        removeAttendance(name, () => $button.parents('.attendance__list__item').remove());
+
+/*
+*   End Attendance Marking
+*
+*   ########################
+*
+*   Start Attendance List
+*
+*   This section of code controls the attendance list
+*   code such as the delete buttons
+*
+*/
+
+// For all of the delete buttons on the attendance page
+elements('.attendance__list__item__buttons__button', element => element.onclick = () => { // When the element is clicked
+    const name = element.getAttribute('data-name'); // Get the name attribute
+    if (name !== undefined && name !== null) { // If there is a name attribute
+        if (confirm('Are you sure you want to remove the attendance for "' + name + '"')) { // Confirm the user wants to remove it
+            removeAttendance(name, () => { // Remove the attendance
+                const parent = element.parentElement.parentElement; // Get the root element
+                const listItem = parent.parentElement; // Get its parent
+                listItem.removeChild(parent); // Remove the element using its parent
+            });
+        }
     }
 });

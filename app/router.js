@@ -1,4 +1,5 @@
-const sheets = require('./sheets')
+const sheets = require('./sheets');
+const moment = require('moment');
 
 module.exports = (app, database) => {
 
@@ -11,13 +12,14 @@ module.exports = (app, database) => {
     // Handle GET requests to /members
     app.get('/members', (req, res) => {
         // Fetch the members from google sheets
-        sheets.getNameList().then(members => {
+        sheets.getNameList().then(result => {
             // Response with a success and the members
             res.json({
                 status: "success",
-                members: members
+                members: result.data,
+                cached: result.cached
             });
-        }).catch(err => {
+        }).catch(() => {
             // Response with a failure
             res.json({
                 "status": "failed"
@@ -27,19 +29,25 @@ module.exports = (app, database) => {
 
     // Handle GET requests to /attending
     app.get('/attending', (req, res) => {
+        let date = req.query.date; // Get the date provided via the request query (can be undefined)
+        if (date && date.match(/[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}/)) date = moment(date); // Get the moment representation of the date;
+        else date = moment(); // If we aren't given a date just use the current one
+        const dateFormat = 'YYYY-MM-DD'; // The date format used in HTML
         // Fetch the attending names
-        database.getAttending().then(data => {
+        database.getAttending(date).then(data => {
             // Render the attending page with the attendance data
             res.render('attending', {
                 title: 'Attendance',
-                data: data
+                data,
+                date: date.format(dateFormat)
             });
         }).catch(() => {
             // Render the attending page with an empty array of data
             // because we couldn't retrieve the data
             res.render('attending', {
                 title: 'Attendance',
-                data: []
+                data: [],
+                date: date.format(dateFormat)
             });
         });
     });

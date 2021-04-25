@@ -1,18 +1,20 @@
-<a class="nav__button button" href="/attending"><img src="img/manage.svg" class="attending__button__img" alt="M"></a>
+<a class="nav__button button" href="/attending"><img src="img/manage.svg" width="24" height="24"
+                                                     class="attending__button__img" alt="M" title="View Attendance"></a>
 <header class="header">
-    <img class="header__logo" src="img/logo-text.svg" alt="Questionable Research Labs Logo"
+    <img class="header__logo" width="548" height="412" src="img/logo-text.svg" alt="Questionable Research Labs Logo"
          aria-label="Questionable Research Labs Logo" title="Questionable Research Labs">
 </header>
 <main class="main">
+    <div class="cache-indicator cache-indicator--hidden" id="cacheIndicator">Cached</div>
     <div class="member-types" id="types">
-        <p class="header__message">Welcome to Questionable Research Labs, Please <span class="text-pop">Sign In</span>
+        <p class="header__message">Welcome to Questionable Research Labs, Please Sign In
             using the form below</p>
         <div class="member-types__list">
             <a class="member-types__type" href="#guest" title="I am new!">
-                <p>I am a<span class="text-pop">Guest</span></p>
+                <p>I am a<span>Guest</span></p>
             </a>
             <a class="member-types__type" href="#member" title="Im signed up!">
-                <p>I am a<span class="text-pop">Member</span></p>
+                <p>I am a<span>Member</span></p>
             </a>
         </div>
     </div>
@@ -23,7 +25,7 @@
             <label class="input__label">Full Name
                 <input type="text" class="input" placeholder="" id="guestName" minlength="1" tabindex="1">
             </label>
-            <button id="guestSubmit" class="button" tabindex="2">Done</button>
+            <button id="guestSubmit" class="button" tabindex="2" disabled>Done</button>
         </div>
         <div class="sign-pages__page sign-pages__page--hidden" page-id="member">
             <p class="sign-pages__page__message">Welcome, please enter your name and select it from the list</p>
@@ -37,17 +39,3 @@
         </div>
     </div>
 </main>
-<div class="loader__wrapper" id="loader">
-    <div class="loader">
-        <div class="loader__body">
-            <span class="loader__circle"></span>
-            <span class="loader__circle"></span>
-            <span class="loader__circle"></span>
-        </div>
-        <p class="loader__text" id="loaderText">Loading...</p>
-    </div>
-</div>
-<div class="toast toast--hidden" id="toast">
-    <p class="toast__text" id="toastText">Successfully marked attendance for Unknown</p>
-    <button class="toast__undo" id="toastUndo">Undo</button>
-</div>

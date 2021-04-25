@@ -8,7 +8,7 @@
     "compileCSS": "sass resources/css/app.scss public/css/app.css",
     "minifyCSS": "csso -i public/css/app.css -o public/css/app.min.css",
     "compileJS": "babel resources/js/app.js --out-dir public/js --source-maps --presets @babel/env",
-    "minifyJS": "uglifyjs public/js/app.js -o public/js/app.min.js"
+    "minifyJS": "uglifyjs public/js/app.js -o public/js/app.min.js -c -m"
   },
   "dependencies": {
     "@babel/preset-env": "^7.13.15",

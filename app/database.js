@@ -23,10 +23,13 @@ const addAttendance = (name, member) => new Promise((resolve, reject) => {
         });
 });
 
-const getAttending = () => new Promise((resolve, reject) => {
+const getAttending = (date) => new Promise((resolve, reject) => {
     // Query the database finding all results that match today's date
-    connection.query('SELECT `full_name`, `registered`, `arrival_time` FROM `attendance_record` WHERE arrival_date = CURRENT_DATE()',
+    connection.query('SELECT `full_name`, `registered`, `arrival_time` FROM `attendance_record` WHERE arrival_date = DATE(?)',
+        [date.format('YYYY-DD-MM')],
         (err, result) => {
+        console.log(result)
+
             if (err != null) { // If there is an error retrieving the data
                 console.error('ERROR Failed to get attendance with db: '+ err)
                 reject(); // Reject the promise

@@ -1,16 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+          content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Jacob Read">
+    <meta name="description" content="The Kiosk software for QRL (Questionable Research Labs)">
     <title>QRLS - {{title}}</title>
+    <link rel="preload" href="css/fonts.min.css" as="style">
     <link rel="stylesheet" href="css/app.min.css">
-    <script src="js/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="css/fonts.min.css">
 </head>
 <body>
-    {{{body}}}
-    <script src="js/app.min.js"></script>
+{{{body}}}
+<div class="loading-bar loading-bar--hidden" id="loader">
+    <div class="loading-bar__line"></div>
+</div>
+<div class="toast toast--hidden" id="toast">
+    <p class="toast__text" id="toastText"></p>
+    <button class="toast__undo" id="toastUndo">Undo</button>
+</div>
+<script defer src="js/app.min.js"></script>
 </body>
 </html>

@@ -173,10 +173,10 @@ const getNameList = () => new Promise(resolve => {
         }
         const fromCache = () => {
             loadCache().then(data => {
-                resolve(data)
+                resolve({data, cached: true})
             }).catch(() => {
                 console.warn('WARNING Failed to load cache defaulting to empty');
-                resolve([]);
+                resolve({data: [], cached: true});
             });
         }
         if (!isExpired) {
@@ -199,7 +199,7 @@ const getNameList = () => new Promise(resolve => {
                     if (responses.length > 0) {
                         saveCache(responses);
                     }
-                    resolve(responses);
+                    resolve({data: responses, cached: false});
                 });
             }).catch(() => {
                 console.warn(`WARNING Failed to authorize with JWT defaulting to old cache from "${cacheExpiry}"`)
