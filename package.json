@@ -1,9 +1,14 @@
 {
   "name": "qrls",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "build": "npm run compileCSS && npm run minifyCSS && npm run compileJS && npm run minifyJS",
+    "compileCSS": "sass resources/css/app.scss public/css/app.css",
+    "minifyCSS": "csso -i public/css/app.css -o public/css/app.min.css",
+    "compileJS": "babel resources/js/app.js --out-dir public/js --source-maps --presets @babel/env",
+    "minifyJS": "uglifyjs public/js/app.js -o public/js/app.min.js"
   },
   "dependencies": {
     "@babel/preset-env": "^7.13.15",
