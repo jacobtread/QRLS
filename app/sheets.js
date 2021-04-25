@@ -1,71 +1,78 @@
 const {google} = require('googleapis');
 const fs = require('fs');
 const moment = require('moment');
+const path = require('path');
+
+const requireEnv = (value, env) => {
+    if (!value) { // Make sure the value is present
+        console.error(`ERROR "${env}" IS NOT DEFINED IN ENVIRONMENT VARIABLES`); // Warn the user
+        process.exit(1); // Exit the process
+        return '';
+    } else {
+        return value; // Return the value
+    }
+}
 
 // The access scope for our google api request
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']; // We only need the readonly scope because we aren't doing any writing
 
 // Load and ensure that we have the required environment variables
-const JWT_TOKEN_PATH = process.env.JWT_TOKEN_PATH;
-if (!JWT_TOKEN_PATH) console.error('ERROR `TOKEN_PATH` IS NOT DEFINED IN ENVIRONMENT VARIABLES');
-const JWT_CREDENTIALS_PATH = process.env.JWT_CREDENTIALS_PATH;
-if (!JWT_CREDENTIALS_PATH) console.error('ERROR `JWT_CREDENTIALS_PATH` IS NOT DEFINED IN ENVIRONMENT VARIABLES');
-const CACHE_FILE_PATH = process.env.CACHE_FILE_PATH;
-if (!CACHE_FILE_PATH) console.error('ERROR `CACHE_FILE_PATH` IS NOT DEFINED IN ENVIRONMENT VARIABLES');
+const JWT_TOKEN_PATH = requireEnv(process.env.JWT_TOKEN_PATH, 'JWT_TOKEN_PATH');
+
+// JWT Credentials
+const JWT_CREDENTIALS_KEY = requireEnv(process.env.JWT_CREDENTIALS_KEY, 'JWT_CREDENTIALS_KEY');
+const JWT_CREDENTIALS_EMAIL = requireEnv(process.env.JWT_CREDENTIALS_EMAIL, 'JWT_CREDENTIALS_EMAIL');
+
+// Cache file data
+const CACHE_FILE_PATH = requireEnv(process.env.CACHE_FILE_PATH, 'CACHE_FILE_PATH');
 const CACHE_EXPIRE_TIME = parseInt(process.env.CACHE_EXPIRE_TIME) || 1
+
+// Files resolved from the environment variables
+const jwtTokenFile = path.join(JWT_TOKEN_PATH, 'token.json');
+const cacheFile = path.join(CACHE_FILE_PATH, 'cache.json');
 
 // Authorize with JWT
 const authorize = () => new Promise((resolve, reject) => {
-    // Load the JWT Credentials file
-    fs.readFile(JWT_CREDENTIALS_PATH, (err, fileData) => {
+    // Create a new JWT client with the credentials
+    const jwtClient = new google.auth.JWT({
+        email: JWT_CREDENTIALS_EMAIL,
+        key: JWT_CREDENTIALS_KEY,
+        scopes: SCOPES
+    });
+    if (!fs.existsSync(JWT_TOKEN_PATH)) { // Make sure the token path directory exists
+        fs.mkdirSync(JWT_TOKEN_PATH, {recursive: true}); // Create the directory structure if it doesn't
+    }
+    // Read the JWT Token file
+    fs.readFile(jwtTokenFile, (err, tokenFileData) => {
         if (err != null) { // If we failed to read the file or it doesn't exist
-            // Warn the user
-            console.error(`ERROR Failed to read JWT credentials from "${JWT_CREDENTIALS_PATH}": ${err}`);
-            reject(); // Reject the promise
-        } else {
-            // Parse the JSON in the file
-            const credentials = JSON.parse(fileData.toString('utf-8'));
-            // Retrieve the email and private key from the JSON
-            const {client_email, private_key} = credentials;
-            // Create a new JWT client with the credentials
-            const jwtClient = new google.auth.JWT({
-                email: client_email,
-                key: private_key,
-                scopes: SCOPES
-            });
-            // Read the JWT Token file
-            fs.readFile(JWT_TOKEN_PATH, (err, tokenFileData) => {
-                if (err != null) { // If we failed to read the file or it doesn't exist
-                    console.debug('Authorizing with JWT'); // Debug messaging
-                    // Generate new token
-                    jwtClient.authorize((err, tokenData) => {
-                        if (err != null) { // If we failed to authorize with JWT
-                            console.error('ERROR Failed to authorize with JWT: ' + err);
-                            reject(); // Reject the promise
-                        } else {
-                            const tokenString = JSON.stringify(tokenData)
-                            // Write the JWT token to its file
-                            fs.writeFile(JWT_TOKEN_PATH, tokenString, err => {
-                                if (err) { // If we failed to write to the file
-                                    // Warn the user
-                                    console.error(`ERROR Failed to write JWT token to "${JWT_TOKEN_PATH}": ${err}`)
-                                }
-                            });
-                            // Resolve with the JWT client
-                            resolve(jwtClient);
+            console.debug('Authorizing with JWT'); // Debug messaging
+            // Generate new token
+            jwtClient.authorize((err, tokenData) => {
+                if (err != null) { // If we failed to authorize with JWT
+                    console.error('ERROR Failed to authorize with JWT: ' + err);
+                    reject(); // Reject the promise
+                } else {
+                    const tokenString = JSON.stringify(tokenData)
+                    // Write the JWT token to its file
+                    fs.writeFile(jwtTokenFile, tokenString, err => {
+                        if (err) { // If we failed to write to the file
+                            // Warn the user
+                            console.error(`ERROR Failed to write JWT token to "${jwtTokenFile}": ${err}`)
                         }
                     });
-                } else {
-                    // Parse the JWT token from the JSON file
-                    const tokenData = JSON.parse(tokenFileData.toString('utf-8'));
-                    // Set the JWT credentials to the token
-                    jwtClient.setCredentials(tokenData);
                     // Resolve with the JWT client
                     resolve(jwtClient);
                 }
             });
+        } else {
+            // Parse the JWT token from the JSON file
+            const tokenData = JSON.parse(tokenFileData.toString('utf-8'));
+            // Set the JWT credentials to the token
+            jwtClient.setCredentials(tokenData);
+            // Resolve with the JWT client
+            resolve(jwtClient);
         }
-    })
+    });
 });
 
 // Retrieve the range data from a google sheet
@@ -96,7 +103,7 @@ const fetchGoogleSheet = (jwtClient, spreadsheetId, rangeName) => new Promise(re
 // Load the cache expiry file (this tells us when its due to expire)
 const loadCacheExpiry = () => new Promise(resolve => {
     // Read the cache expiry file
-    fs.readFile(CACHE_FILE_PATH + '.expiry', (err, data) => {
+    fs.readFile(cacheFile + '.expiry', (err, data) => {
         if (err != null) { // If we failed to read the file or it doesn't exist
             resolve(null); // Resolve with null
         } else {
@@ -108,9 +115,12 @@ const loadCacheExpiry = () => new Promise(resolve => {
 
 // Save the provided data to the cache file
 const saveCache = data => {
+    if (!fs.existsSync(CACHE_FILE_PATH)) { // Make sure the cache directory exists
+        fs.mkdirSync(CACHE_FILE_PATH, {recursive: true}); // Create the directory structure if it doesn't
+    }
     data = JSON.stringify(data); // Serialize the data
     // Write the data to the cache file
-    fs.writeFile(CACHE_FILE_PATH, data, err => {
+    fs.writeFile(cacheFile, data, err => {
         if (err != null) { // If we failed to write the cache file
             // Warn the user
             console.error('ERROR Failed to save cache file: ' + err);
@@ -118,7 +128,7 @@ const saveCache = data => {
             // Calculate the expiry date
             const expiry = moment().add(CACHE_EXPIRE_TIME, 'hour')
             // Write the expiry date to the app.json.expiry file
-            fs.writeFile(CACHE_FILE_PATH + '.expiry', expiry.toISOString(), err => {
+            fs.writeFile(cacheFile + '.expiry', expiry.toISOString(), err => {
                 if (err != null) { // If we failed to write the cache expiry file
                     // Warn the user
                     console.error('ERROR Failed to save cache file time: ' + err)
@@ -129,14 +139,14 @@ const saveCache = data => {
 }
 
 const clearCache = () => {
-    fs.rmSync(CACHE_FILE_PATH);
-    fs.rmSync(CACHE_FILE_PATH + '.expiry');
+    fs.rmSync(cacheFile);
+    fs.rmSync(cacheFile + '.expiry');
 }
 
 // Loads the cache file data
 const loadCache = () => new Promise((resolve, reject) => {
     // Read the cache file
-    fs.readFile(CACHE_FILE_PATH, (err, data) => {
+    fs.readFile(cacheFile, (err, data) => {
         if (err != null) { // If we failed to read the file or it doesn't exist
             // Warn the user
             console.error('ERROR Failed to load cache file: ' + err);

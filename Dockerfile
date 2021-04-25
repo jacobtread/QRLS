@@ -3,7 +3,7 @@ FROM node:alpine
 WORKDIR /usr/src/qrls
 
 COPY package*.json ./
-COPY app/data ./app/data
+
 RUN npm install
 
 # FOR PRODUCTION

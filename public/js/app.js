@@ -199,21 +199,35 @@ function fillMembersList() {
   clearMembersList(); // Clear the list of members
   // Loop through all the members
 
+  var tabIndex = 5;
   members.forEach(function (member) {
     // Create the label wrapping so the whole thing acts a radio button
     var $item = $('<label/>', {
       "class": 'members__list__item',
-      text: member
-    }); // Create the radio button
+      text: member,
+      tabindex: tabIndex
+    });
+    tabIndex++; // Create the radio button
 
     var $radio = $('<input/>', {
       type: 'radio',
       name: 'members',
       "class": 'members__list__item__button',
       value: member
+    });
+    $item.on('keydown', function (e) {
+      if (e.keyCode === 13) {
+        var _$radio = $($(this).children()[0]);
+
+        _$radio.trigger('click');
+
+        $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+
+        $memberSubmit.trigger('click'); // Click the button
+      }
     }); // Set the click logic for the radio button
 
-    $radio.on('click', function () {
+    $radio.on('change', function () {
       var $button = $(this); // Get a jquery instance of the button
 
       var $parent = $button.parent(); // Get the parent element

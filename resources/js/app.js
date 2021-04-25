@@ -163,18 +163,29 @@ function fillMembersList(name = null) {
     const members = getRelevantMembers(name); // Get the members relevant to the search
     clearMembersList(); // Clear the list of members
     // Loop through all the members
+    let tabIndex = 5;
     members.forEach(member => {
         // Create the label wrapping so the whole thing acts a radio button
-        const $item = $('<label/>', {class: 'members__list__item', text: member});
+        const $item = $('<label/>', {class: 'members__list__item', text: member, tabindex: tabIndex});
+        tabIndex++;
         // Create the radio button
         const $radio = $('<input/>', {
             type: 'radio',
             name: 'members',
             class: 'members__list__item__button',
-            value: member
+            value: member,
         });
+
+        $item.on('keydown', function (e) {
+            if (e.keyCode === 13) {
+                const $radio = $($(this).children()[0]);
+                $radio.trigger('click');
+                $memberSubmit.prop('disabled', selectedMember == null); // Enable the button
+                $memberSubmit.trigger('click'); // Click the button
+            }
+        })
         // Set the click logic for the radio button
-        $radio.on('click', function () {
+        $radio.on('change', function () {
             const $button = $(this); // Get a jquery instance of the button
             const $parent = $button.parent(); // Get the parent element
             const checked = $button.is(':checked'); // Check if the button is checked
