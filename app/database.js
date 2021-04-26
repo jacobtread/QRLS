@@ -10,15 +10,6 @@ const connection = mysql.createConnection({
     database: process.env.DB_DATABASE
 });
 
-connection.connect(err => {
-    if (err != null) { // If we failed to connect to the database
-        console.error('Unable to connect to QRLS Database!');
-        process.exit(0); // Exit the process
-    } else {
-        console.log('Connected to database'); // Success!
-    }
-})
-
 const addAttendance = (name, member) => new Promise((resolve, reject) => {
     // Quest the database inserting a new row for today with the name
     connection.query('INSERT INTO `attendance_record`(`full_name`, `registered`, `arrival_date`, `arrival_time`) VALUES (?, ?, CURRENT_DATE(), CURRENT_TIME())',
