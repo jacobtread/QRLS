@@ -376,6 +376,7 @@ nonNull(document.getElementById('signBack'), element => element.onclick = () => 
 // This stores the list of members retrieved from the server
 let members = [];
 let selectedMember = null; // Stores the selected member
+const LOAD_RETRY_DELAY = 2 * 1000; // The time before attempting to load the members after failing is milliseconds (2 seconds)
 
 /**
  *  LoadMembers - Loads the list of members from the backend server
@@ -386,7 +387,12 @@ function loadMembers() {
     // Display the loader so the user knows whats happening
     showLoader();
     // A Function that is called if we failed
-    const fail = (reason) => showToast('Failed to load members: ' + reason, null, true);
+    const fail = (reason) => {
+        showToast(`Failed to load members: ${reason} (Retrying in ${LOAD_RETRY_DELAY / 1000}s)`, null, true);
+        setTimeout(() => { // Wait the load retry delay
+            loadMembers(); // Load the members again
+        }, LOAD_RETRY_DELAY);
+    }
     // Ajax request to /members the backend endpoint for the members list
     get('/members', (err, res) => {
         if (err != null) {

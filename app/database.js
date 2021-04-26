@@ -1,4 +1,4 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2'); // MySQL2 because its the faster and more secure library
 const moment = require('moment');
 
 // Create a new connection with the database
@@ -9,6 +9,15 @@ const connection = mysql.createConnection({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE
 });
+
+connection.connect(err => {
+    if (err != null) { // If we failed to connect to the database
+        console.error('Unable to connect to QRLS Database!');
+        process.exit(0); // Exit the process
+    } else {
+        console.log('Connected to database'); // Success!
+    }
+})
 
 const addAttendance = (name, member) => new Promise((resolve, reject) => {
     // Quest the database inserting a new row for today with the name

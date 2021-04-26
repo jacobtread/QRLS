@@ -479,6 +479,8 @@ nonNull(document.getElementById('signBack'), function (element) {
 var members = [];
 var selectedMember = null; // Stores the selected member
 
+var LOAD_RETRY_DELAY = 2 * 1000; // The time before attempting to load the members after failing is milliseconds (2 seconds)
+
 /**
  *  LoadMembers - Loads the list of members from the backend server
  *  and displays a loader while its happening then updates the cache
@@ -490,7 +492,11 @@ function loadMembers() {
   showLoader(); // A Function that is called if we failed
 
   var fail = function fail(reason) {
-    return showToast('Failed to load members: ' + reason, null, true);
+    showToast("Failed to load members: ".concat(reason, " (Retrying in ").concat(LOAD_RETRY_DELAY / 1000, "s)"), null, true);
+    setTimeout(function () {
+      // Wait the load retry delay
+      loadMembers(); // Load the members again
+    }, LOAD_RETRY_DELAY);
   }; // Ajax request to /members the backend endpoint for the members list
 
 
